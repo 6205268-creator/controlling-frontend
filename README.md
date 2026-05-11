@@ -1,50 +1,53 @@
-# React + TypeScript + Vite
+# Controlling Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Веб-приложение казначея садоводческого товарищества.
 
-Currently, two official plugins are available:
+## Быстрый старт
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+cp .env.example .env
+# Отредактировать .env: вписать IP бэкенда
+docker compose up -d
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+Приложение открывается на http://localhost:3000
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+## Переменные окружения
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+| Переменная | Описание | Пример |
+|------------|----------|--------|
+| `VITE_API_BASE_URL` | Base URL бэкенда (PostgREST) | `http://103.35.190.117/pg` |
+
+> `VITE_API_BASE_URL` вшивается при сборке Docker-образа. При смене IP нужно пересобрать: `docker compose build`.
+
+## Переезд на другой сервер
+
+```bash
+git clone <repo-url>
+cd controlling-frontend
+cp .env.example .env       # вписать IP нового бэкенда
+docker compose up -d
 ```
+
+## Тестовые пользователи
+
+| Логин | Пароль | Роль |
+|-------|--------|------|
+| `demo_a_treasury` | `treasury123` | Казначей (СТ «Демо-А») |
+| `demo_a_chair` | `chair123` | Председатель (СТ «Демо-А») |
+
+## Разработка без Docker
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+## Стек
+
+- React 18 + TypeScript
+- Vite 5
+- Tailwind CSS 3
+- shadcn/ui
+- react-router-dom 6
