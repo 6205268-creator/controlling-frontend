@@ -1,1 +1,136 @@
-export default function DashboardPage() { return <div>Dashboard</div> }
+import { useEffect, useState } from 'react'
+import { apiFetch, orgParam } from '../lib/api'
+
+interface DocJournalItem {
+  id: string
+  doc_type: string
+  doc_date: string
+  status: string
+  amount: number | null
+  contractor_name: string | null
+}
+
+interface ObjectDebt {
+  total_debt: number
+}
+
+interface PlotSummaryItem { id: string }
+interface Contractor { id: string }
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  payment: 'Платёж',
+  accrual: 'Начисление',
+  distribution: 'Распределение',
+  meter_reading: 'Показание счётчика',
+  meter_charge: 'Начисление по счётчику',
+  period_close: 'Закрытие периода',
+  meter_correction: 'Корректировка счётчика',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Черновик',
+  posted: 'Проведён',
+  cancelled: 'Отменён',
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: 'bg-zinc-100 text-zinc-500',
+  posted: 'bg-green-100 text-green-700',
+  cancelled: 'bg-red-100 text-red-600',
+}
+
+function fmt(amount: number | null): string {
+  if (amount === null) return '—'
+  return amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' BYN'
+}
+
+function fmtDate(d: string): string {
+  return d.split('-').reverse().join('.')
+}
+
+export default function DashboardPage() {
+  const [docs, setDocs] = useState<DocJournalItem[]>([])
+  const [plotCount, setPlotCount] = useState<number | null>(null)
+  const [contractorCount, setContractorCount] = useState<number | null>(null)
+  const [totalDebt, setTotalDebt] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const q = orgParam()
+    Promise.all([
+      apiFetch<DocJournalItem[]>(`/doc_journal?${q}&order=doc_date.desc&limit=20`),
+      apiFetch<PlotSummaryItem[]>(`/plot_summary?${q}&select=id`),
+      apiFetch<Contractor[]>(`/contractors?${q}&select=id`),
+      apiFetch<ObjectDebt[]>(`/object_debts?${q}&select=total_debt`),
+    ]).then(([d, plots, contractors, debts]) => {
+      setDocs(d)
+      setPlotCount(plots.length)
+      setContractorCount(contractors.length)
+      const sum = debts.reduce((acc, row) => acc + (row.total_debt ?? 0), 0)
+      setTotalDebt(sum)
+    }).finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <p className="text-zinc-400 text-sm">Загрузка...</p>
+
+  return (
+    <div>
+      {/* Карточки */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-lg border border-zinc-200 p-5">
+          <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">Участков</p>
+          <p className="text-2xl font-bold text-zinc-900">{plotCount ?? '—'}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-zinc-200 p-5">
+          <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">Плательщиков</p>
+          <p className="text-2xl font-bold text-zinc-900">{contractorCount ?? '—'}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-zinc-200 p-5">
+          <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">Общий долг</p>
+          <p className="text-2xl font-bold text-red-600">
+            {totalDebt !== null ? fmt(totalDebt) : '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Таблица операций */}
+      <div className="bg-white rounded-lg border border-zinc-200">
+        <div className="px-5 py-4 border-b border-zinc-100">
+          <h2 className="text-sm font-semibold text-zinc-900">Последние операции</h2>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-zinc-50">
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Дата</th>
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Тип</th>
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Плательщик</th>
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Сумма</th>
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {docs.map((d, i) => (
+              <tr
+                key={d.id}
+                className={i % 2 === 0 ? 'bg-white' : 'bg-zinc-50/60'}
+              >
+                <td className="px-5 py-3 text-zinc-600">{fmtDate(d.doc_date)}</td>
+                <td className="px-5 py-3 text-zinc-700">{DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type}</td>
+                <td className="px-5 py-3 text-zinc-700">{d.contractor_name ?? '—'}</td>
+                <td className="px-5 py-3 text-zinc-700">{fmt(d.amount)}</td>
+                <td className="px-5 py-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[d.status] ?? 'bg-zinc-100 text-zinc-500'}`}>
+                    {STATUS_LABELS[d.status] ?? d.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+            {docs.length === 0 && (
+              <tr><td colSpan={5} className="px-5 py-8 text-center text-zinc-400 text-sm">Операций нет</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
