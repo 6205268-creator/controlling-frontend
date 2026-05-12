@@ -123,10 +123,9 @@ npm run dev   # → http://localhost:5173
 git log --oneline    # 12 коммитов, всё от 2026-05-11
 ```
 
-**Удалённого репо нет** — нужно создать на GitHub и добавить remote:
+**GitHub:** https://github.com/6205268-creator/controlling-frontend  
 ```bash
-git remote add origin https://github.com/6205268-creator/controlling-frontend.git
-git push -u origin main
+git push origin master
 ```
 
 ---
