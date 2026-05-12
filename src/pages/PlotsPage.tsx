@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, orgParam } from '../lib/api'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import OwnershipDialog, { type PlotOption } from '../components/OwnershipDialog'
 
 interface PlotSummary {
   id: string
   number: string
   area: number
   is_active: boolean
+  owner_id: string | null
   owner_name: string | null
   owner_phone: string | null
 }
@@ -18,12 +21,23 @@ export default function PlotsPage() {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<FilterTab>('all')
   const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [preselectedPlot, setPreselectedPlot] = useState<PlotOption | null>(null)
 
-  useEffect(() => {
+  function loadPlots() {
+    setLoading(true)
     apiFetch<PlotSummary[]>(`/plot_summary?${orgParam()}&order=number.asc`)
       .then(setPlots)
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { loadPlots() }, [])
+
+  function openForAll() { setPreselectedPlot(null); setDialogOpen(true) }
+  function openForPlot(p: PlotSummary) {
+    setPreselectedPlot({ id: p.id, number: p.number, owner_name: p.owner_name })
+    setDialogOpen(true)
+  }
 
   const filtered = plots
     .filter(p => tab === 'all' ? true : tab === 'active' ? p.is_active : !p.is_active)
@@ -36,10 +50,12 @@ export default function PlotsPage() {
   }
 
   const tabs: { key: FilterTab; label: string }[] = [
-    { key: 'all', label: `Все (${counts.all})` },
-    { key: 'active', label: `Активные (${counts.active})` },
+    { key: 'all',      label: `Все (${counts.all})` },
+    { key: 'active',   label: `Активные (${counts.active})` },
     { key: 'inactive', label: `Неактивные (${counts.inactive})` },
   ]
+
+  const allPlots: PlotOption[] = plots.map(p => ({ id: p.id, number: p.number, owner_name: p.owner_name }))
 
   if (loading) return <p className="text-zinc-400 text-sm">Загрузка...</p>
 
@@ -65,6 +81,9 @@ export default function PlotsPage() {
           onChange={e => setSearch(e.target.value)}
           className="max-w-xs"
         />
+        <Button onClick={openForAll} className="ml-auto">
+          + Оформить владение
+        </Button>
       </div>
 
       <div className="bg-white rounded-lg border border-zinc-200">
@@ -76,6 +95,7 @@ export default function PlotsPage() {
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Владелец</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Телефон</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Статус</th>
+              <th className="px-5 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
@@ -86,18 +106,40 @@ export default function PlotsPage() {
                 <td className="px-5 py-3 text-zinc-700">{p.owner_name ?? '—'}</td>
                 <td className="px-5 py-3 text-zinc-600">{p.owner_phone ?? '—'}</td>
                 <td className="px-5 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    p.is_active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'
+                  }`}>
                     {p.is_active ? 'Активен' : 'Неактивен'}
                   </span>
+                </td>
+                <td className="px-5 py-3 text-right">
+                  {!p.owner_id && (
+                    <button
+                      className="text-xs text-blue-600 hover:underline whitespace-nowrap"
+                      onClick={() => openForPlot(p)}
+                    >
+                      Назначить владельца
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-zinc-400">Ничего не найдено</td></tr>
+              <tr>
+                <td colSpan={6} className="px-5 py-8 text-center text-zinc-400">Ничего не найдено</td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <OwnershipDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onPosted={loadPlots}
+        preselectedPlot={preselectedPlot}
+        allPlots={allPlots}
+      />
     </div>
   )
 }
