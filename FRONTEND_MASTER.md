@@ -1,4 +1,4 @@
-# Controlling Frontend — MASTER DOCUMENT
+# Controlling Frontend — FRONTEND MASTER DOCUMENT
 
 > Главный документ фронтенда. Новая сессия начинает отсюда.
 > Последнее обновление: 2026-05-11
@@ -11,7 +11,7 @@
 SPA на React 18 + Vite + Tailwind + shadcn/ui.  
 Подключается к бэкенду PostgREST на `http://103.35.190.117/pg`.
 
-**Бэкенд находится в ДРУГОМ проекте:** `/home/roman/dev-context/` — не смешивать.
+**Бэкенд находится в ДРУГОМ проекте:** `/home/roman/dev-context/BACKEND_MASTER.md` — не смешивать.
 
 ---
 
