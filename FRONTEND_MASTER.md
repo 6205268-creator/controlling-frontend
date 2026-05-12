@@ -11,7 +11,7 @@
 SPA на React 18 + Vite + Tailwind + shadcn/ui.  
 Подключается к бэкенду PostgREST на `http://103.35.190.117/pg`.
 
-**Бэкенд находится в ДРУГОМ проекте:** `/home/roman/dev-context/BACKEND_MASTER.md` — не смешивать.
+**Бэкенд находится в ДРУГОМ проекте:** `/home/roman/controlling-backend/BACKEND_MASTER.md` — не смешивать.
 
 ---
 
@@ -135,8 +135,8 @@ git push -u origin main
 
 | Файл | Расположение |
 |------|-------------|
-| Спек (дизайн) | `/home/roman/dev-context/docs/superpowers/specs/2026-05-11-controlling-frontend-design.md` |
-| План реализации | `/home/roman/dev-context/docs/superpowers/plans/2026-05-11-controlling-frontend.md` |
+| Спек (дизайн) | `/home/roman/controlling-backend/docs/superpowers/specs/2026-05-11-controlling-frontend-design.md` |
+| План реализации | `/home/roman/controlling-backend/docs/superpowers/plans/2026-05-11-controlling-frontend.md` |
 
 ---
 
@@ -155,5 +155,5 @@ git push -u origin main
 1. Прочитай этот файл
 2. Проверь что контейнер жив: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000`
 3. Проверь бэкенд: `curl http://localhost:3100/rpc/health`
-4. **НЕ СМЕШИВАЙ** фронтенд (`/home/roman/controlling-frontend`) и бэкенд (`/home/roman/dev-context`)
+4. **НЕ СМЕШИВАЙ** фронтенд (`/home/roman/controlling-frontend`) и бэкенд (`/home/roman/controlling-backend`)
 5. Спроси пользователя что делаем
