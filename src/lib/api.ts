@@ -39,3 +39,70 @@ export function orgParam(): string {
   const id = getOrgId()
   return id ? `organization_id=eq.${id}` : ''
 }
+
+// --- Ownership ---
+
+export interface Contractor {
+  id: string
+  full_name: string
+  contractor_type: 'individual' | 'legal_entity'
+  phone: string | null
+}
+
+export interface RpcResult {
+  ok: boolean
+  error?: string
+  [key: string]: unknown
+}
+
+export async function searchContractors(orgId: string, query: string): Promise<Contractor[]> {
+  return apiFetch<Contractor[]>('/rpc/search_contractors', {
+    method: 'POST',
+    body: JSON.stringify({ p_org_id: orgId, p_query: query }),
+  })
+}
+
+export async function createContractor(params: {
+  orgId: string
+  fullName: string
+  contractorType: 'individual' | 'legal_entity'
+  phone?: string
+}): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/create_contractor', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_org_id:          params.orgId,
+      p_full_name:       params.fullName,
+      p_contractor_type: params.contractorType,
+      p_phone:           params.phone ?? null,
+    }),
+  })
+}
+
+export async function createOwnership(params: {
+  orgId: string
+  contractorId: string
+  objectType: string
+  objectId: string
+  docDate: string
+  notes?: string
+}): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/create_ownership', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_org_id:        params.orgId,
+      p_contractor_id: params.contractorId,
+      p_object_type:   params.objectType,
+      p_object_id:     params.objectId,
+      p_doc_date:      params.docDate,
+      p_notes:         params.notes ?? null,
+    }),
+  })
+}
+
+export async function postOwnership(docId: string): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/post_ownership', {
+    method: 'POST',
+    body: JSON.stringify({ p_doc_id: docId }),
+  })
+}
