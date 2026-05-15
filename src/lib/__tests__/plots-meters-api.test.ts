@@ -11,9 +11,6 @@ vi.mock('../auth', () => ({
 
 import { updatePlot, addMeter, updateMeter, cancelDocument, getPlotsByOwner } from '../api'
 
-function ok204() {
-  return Promise.resolve({ ok: true, status: 204, json: async () => ({}) })
-}
 function okJson(data: unknown) {
   return Promise.resolve({ ok: true, status: 200, json: async () => data })
 }
@@ -21,42 +18,45 @@ function okJson(data: unknown) {
 beforeEach(() => mockFetch.mockReset())
 
 describe('updatePlot', () => {
-  it('sends PATCH to /plots?id=eq.<uuid>', async () => {
-    mockFetch.mockResolvedValueOnce(ok204())
+  it('posts to /rpc/update_plot with correct params', async () => {
+    mockFetch.mockResolvedValueOnce(okJson({ ok: true }))
     await updatePlot('plot-1', { number: '5', area: 6.1, is_active: true })
-    expect(mockFetch.mock.calls[0][0]).toContain('/plots?id=eq.plot-1')
-    expect(mockFetch.mock.calls[0][1].method).toBe('PATCH')
+    expect(mockFetch.mock.calls[0][0]).toContain('/rpc/update_plot')
+    expect(mockFetch.mock.calls[0][1].method).toBe('POST')
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-    expect(body.number).toBe('5')
-    expect(body.area).toBe(6.1)
-    expect(body.is_active).toBe(true)
+    expect(body.p_plot_id).toBe('plot-1')
+    expect(body.p_org_id).toBe('org-123')
+    expect(body.p_number).toBe('5')
+    expect(body.p_area).toBe(6.1)
+    expect(body.p_is_active).toBe(true)
   })
 })
 
 describe('addMeter', () => {
-  it('sends POST to /meters with correct fields', async () => {
-    mockFetch.mockResolvedValueOnce(ok204())
+  it('posts to /rpc/create_meter with correct params', async () => {
+    mockFetch.mockResolvedValueOnce(okJson({ ok: true }))
     await addMeter({ orgId: 'org-1', plotId: 'plot-1', meterType: 'water', serialNumber: 'SN-001' })
-    expect(mockFetch.mock.calls[0][0]).toContain('/meters')
+    expect(mockFetch.mock.calls[0][0]).toContain('/rpc/create_meter')
     expect(mockFetch.mock.calls[0][1].method).toBe('POST')
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-    expect(body.organization_id).toBe('org-1')
-    expect(body.plot_id).toBe('plot-1')
-    expect(body.meter_type).toBe('water')
-    expect(body.serial_number).toBe('SN-001')
-    expect(body.is_active).toBe(true)
+    expect(body.p_org_id).toBe('org-1')
+    expect(body.p_plot_id).toBe('plot-1')
+    expect(body.p_meter_type).toBe('water')
+    expect(body.p_serial_number).toBe('SN-001')
   })
 })
 
 describe('updateMeter', () => {
-  it('sends PATCH to /meters?id=eq.<uuid>', async () => {
-    mockFetch.mockResolvedValueOnce(ok204())
+  it('posts to /rpc/update_meter with correct params', async () => {
+    mockFetch.mockResolvedValueOnce(okJson({ ok: true }))
     await updateMeter('meter-1', { meter_type: 'electricity', serial_number: 'SN-002', is_active: false })
-    expect(mockFetch.mock.calls[0][0]).toContain('/meters?id=eq.meter-1')
-    expect(mockFetch.mock.calls[0][1].method).toBe('PATCH')
+    expect(mockFetch.mock.calls[0][0]).toContain('/rpc/update_meter')
+    expect(mockFetch.mock.calls[0][1].method).toBe('POST')
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-    expect(body.meter_type).toBe('electricity')
-    expect(body.is_active).toBe(false)
+    expect(body.p_meter_id).toBe('meter-1')
+    expect(body.p_org_id).toBe('org-123')
+    expect(body.p_meter_type).toBe('electricity')
+    expect(body.p_is_active).toBe(false)
   })
 })
 

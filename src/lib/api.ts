@@ -165,9 +165,12 @@ export async function updatePlot(
   id: string,
   data: { number: string; area: number; is_active: boolean }
 ): Promise<void> {
-  return apiFetch<void>(`/plots?id=eq.${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
+  await apiPost<RpcResult>('/rpc/update_plot', {
+    p_org_id:    getOrgId(),
+    p_plot_id:   id,
+    p_number:    data.number,
+    p_area:      data.area,
+    p_is_active: data.is_active,
   })
 }
 
@@ -193,15 +196,11 @@ export async function addMeter(params: {
   meterType: string
   serialNumber: string
 }): Promise<void> {
-  return apiFetch<void>('/meters', {
-    method: 'POST',
-    body: JSON.stringify({
-      organization_id: params.orgId,
-      plot_id: params.plotId,
-      meter_type: params.meterType,
-      serial_number: params.serialNumber,
-      is_active: true,
-    }),
+  await apiPost<RpcResult>('/rpc/create_meter', {
+    p_org_id:        params.orgId,
+    p_plot_id:       params.plotId,
+    p_meter_type:    params.meterType,
+    p_serial_number: params.serialNumber,
   })
 }
 
@@ -209,9 +208,12 @@ export async function updateMeter(
   id: string,
   data: { meter_type: string; serial_number: string; is_active: boolean }
 ): Promise<void> {
-  return apiFetch<void>(`/meters?id=eq.${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
+  await apiPost<RpcResult>('/rpc/update_meter', {
+    p_org_id:        getOrgId(),
+    p_meter_id:      id,
+    p_meter_type:    data.meter_type,
+    p_serial_number: data.serial_number,
+    p_is_active:     data.is_active,
   })
 }
 
