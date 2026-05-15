@@ -1,21 +1,14 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam } from '../lib/api'
-
-interface DocJournalItem {
-  id: string
-  doc_type: string
-  doc_date: string
-  status: string
-  amount: number | null
-  contractor_name: string | null
-}
+import { apiFetch, orgParam, type JournalItem } from '../lib/api'
+import { Button } from '@/components/ui/button'
+import PaymentDialog from '../components/PaymentDialog'
 
 interface ObjectDebt {
   total_debt: number
 }
 
 interface PlotSummaryItem { id: string }
-interface Contractor { id: string }
+interface ContractorItem { id: string }
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   payment: 'Платёж',
@@ -49,18 +42,21 @@ function fmtDate(d: string): string {
 }
 
 export default function DashboardPage() {
-  const [docs, setDocs] = useState<DocJournalItem[]>([])
+  const [docs, setDocs] = useState<JournalItem[]>([])
   const [plotCount, setPlotCount] = useState<number | null>(null)
   const [contractorCount, setContractorCount] = useState<number | null>(null)
   const [totalDebt, setTotalDebt] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [paymentOpen, setPaymentOpen] = useState(false)
 
   useEffect(() => {
+    setLoading(true)
     const q = orgParam()
     Promise.all([
-      apiFetch<DocJournalItem[]>(`/doc_journal?${q}&order=doc_date.desc&limit=20`),
+      apiFetch<JournalItem[]>(`/doc_journal?${q}&order=doc_date.desc&limit=20`),
       apiFetch<PlotSummaryItem[]>(`/plot_summary?${q}&select=id`),
-      apiFetch<Contractor[]>(`/contractors?${q}&select=id`),
+      apiFetch<ContractorItem[]>(`/contractors?${q}&select=id`),
       apiFetch<ObjectDebt[]>(`/object_debts?${q}&select=total_debt`),
     ]).then(([d, plots, contractors, debts]) => {
       setDocs(d)
@@ -69,12 +65,19 @@ export default function DashboardPage() {
       const sum = debts.reduce((acc, row) => acc + (row.total_debt ?? 0), 0)
       setTotalDebt(sum)
     }).finally(() => setLoading(false))
-  }, [])
+  }, [refreshKey])
 
   if (loading) return <p className="text-zinc-400 text-sm">Загрузка...</p>
 
   return (
     <div>
+      {/* Quick-action header */}
+      <div className="flex items-center justify-end mb-6">
+        <Button size="sm" onClick={() => setPaymentOpen(true)}>
+          + Принять платёж
+        </Button>
+      </div>
+
       {/* Карточки */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg border border-zinc-200 p-5">
@@ -110,10 +113,7 @@ export default function DashboardPage() {
           </thead>
           <tbody>
             {docs.map((d, i) => (
-              <tr
-                key={d.id}
-                className={i % 2 === 0 ? 'bg-white' : 'bg-zinc-50/60'}
-              >
+              <tr key={d.id} className={i % 2 === 0 ? 'bg-white' : 'bg-zinc-50/60'}>
                 <td className="px-5 py-3 text-zinc-600">{fmtDate(d.doc_date)}</td>
                 <td className="px-5 py-3 text-zinc-700">{DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type}</td>
                 <td className="px-5 py-3 text-zinc-700">{d.contractor_name ?? '—'}</td>
@@ -131,6 +131,12 @@ export default function DashboardPage() {
           </tbody>
         </table>
       </div>
+
+      <PaymentDialog
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        onPosted={() => { setRefreshKey(k => k + 1) }}
+      />
     </div>
   )
 }
