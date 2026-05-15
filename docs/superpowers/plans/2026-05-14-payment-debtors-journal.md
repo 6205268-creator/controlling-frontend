@@ -198,7 +198,15 @@ git commit -m "feat: add createPayment, postPayment API + types (JournalItem, De
 
 **Pattern:** mirrors OwnershipDialog.tsx. Uses `searchContractors` for contractor lookup. No "create new" flow.
 
-- [ ] **Step 1: Create PaymentDialog.tsx**
+> **REQUIRED SKILL before writing code:** Invoke `frontend-design` skill to ensure production-grade visual quality. The skill will guide layout, spacing, color choices, and interaction states for the dialog. Apply its output to the component code below — adjust classes, structure, and visual details as recommended. Then proceed with Step 1.
+
+- [ ] **Step 1: Invoke frontend-design skill**
+
+Use the `frontend-design` skill (via Skill tool or `/frontend-design` command). Brief it with: "Payment dialog modal for a gardening association treasurer app. Dark zinc sidebar, white modal cards. Fields: contractor search (typeahead), amount (BYN), date, optional ERIP reference. Success/error inline states. Buttons: Cancel (outline) + Провести платёж (primary). Should feel clean and professional, not generic."
+
+Apply visual recommendations (spacing, hover states, focus rings, loading state) to the component in Step 2.
+
+- [ ] **Step 2: Create PaymentDialog.tsx**
 
 Create `src/components/PaymentDialog.tsx`:
 
@@ -832,6 +840,8 @@ git commit -m "feat: add per-row payment button to ContractorsPage"
 
 **Files:**
 - Create: `src/pages/DebtorsPage.tsx`
+
+> **REQUIRED SKILL before writing code:** Invoke `frontend-design` skill. Brief it with: "Debtors page for a gardening association treasurer app. Shows debtor cards (not a table). Each card: full name bold + phone, total debt in red on the right (e.g. '−100 BYN'), row of red badge tags per debt type below (e.g. 'Членский взнос: 70 BYN'). Summary line at top: 'N должников · общий долг −X BYN'. Empty state when no debtors. Dark zinc sidebar context, white cards on zinc-100 background." Apply visual recommendations to Step 1 code.
 
 > **IMPORTANT — verify backend schema first:**
 > Before writing the grouping logic, run:
