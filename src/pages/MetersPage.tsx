@@ -27,6 +27,8 @@ interface MeterRow {
   is_active: boolean
 }
 
+interface EditTarget { id: string; meter_type: string; serial_number: string; is_active: boolean }
+
 const TYPE_LABELS: Record<string, string> = {
   water:       'Вода',
   electricity: 'Электричество',
@@ -54,7 +56,6 @@ export default function MetersPage() {
   const [addPlotsLoading, setAddPlotsLoading] = useState(false)
 
   // --- Edit meter state ---
-  interface EditTarget { id: string; meter_type: string; serial_number: string; is_active: boolean }
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
   const [editForm, setEditForm] = useState({ meter_type: 'water', serial_number: '', is_active: true })
   const [editError, setEditError] = useState<string | null>(null)
