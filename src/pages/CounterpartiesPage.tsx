@@ -36,6 +36,7 @@ export default function CounterpartiesPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [paymentTarget, setPaymentTarget] = useState<{ id: string; full_name: string } | null>(null)
 
   function load() {
@@ -46,10 +47,13 @@ export default function CounterpartiesPage() {
     ]).then(([contractors, balances]) => {
       const bMap = new Map(balances.map(b => [b.contractor_id, b.balance]))
       setRows(contractors.map(c => ({ ...c, balance: bMap.get(c.id) ?? 0 })))
-    }).finally(() => setLoading(false))
+    }).catch(e => setError(e instanceof Error ? e.message : 'Ошибка загрузки'))
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
+
+  if (error) return <p className="text-red-600 text-sm">{error}</p>
 
   const filtered = rows
     .filter(r => typeFilter === 'all' || r.contractor_type === typeFilter)
