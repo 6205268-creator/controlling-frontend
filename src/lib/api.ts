@@ -158,3 +158,65 @@ export interface JournalItem {
   amount: number | null
   contractor_name: string | null
 }
+
+// --- Plots edit ---
+
+export async function updatePlot(
+  id: string,
+  data: { number: string; area: number; is_active: boolean }
+): Promise<void> {
+  return apiFetch<void>(`/plots?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+// --- Meters ---
+
+export interface PlotSummary {
+  id: string
+  number: string
+  area: number
+  is_active: boolean
+  owner_id: string | null
+  owner_name: string | null
+  owner_phone: string | null
+}
+
+export async function getPlotsByOwner(ownerId: string): Promise<PlotSummary[]> {
+  return apiFetch<PlotSummary[]>(`/plot_summary?owner_id=eq.${ownerId}&${orgParam()}`)
+}
+
+export async function addMeter(params: {
+  orgId: string
+  plotId: string
+  meterType: string
+  serialNumber: string
+}): Promise<void> {
+  return apiFetch<void>('/meters', {
+    method: 'POST',
+    body: JSON.stringify({
+      organization_id: params.orgId,
+      plot_id:         params.plotId,
+      meter_type:      params.meterType,
+      serial_number:   params.serialNumber,
+      is_active:       true,
+    }),
+  })
+}
+
+export async function updateMeter(
+  id: string,
+  data: { meter_type: string; serial_number: string; is_active: boolean }
+): Promise<void> {
+  return apiFetch<void>(`/meters?id=eq.${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+// --- Cancel document ---
+
+export async function cancelDocument(docId: string): Promise<RpcResult> {
+  return apiPost<RpcResult>('/rpc/cancel_document', { p_doc_id: docId })
+}
