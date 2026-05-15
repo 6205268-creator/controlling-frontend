@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, orgParam } from '../lib/api'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import PaymentDialog from '../components/PaymentDialog'
 
 interface Contractor {
   id: string
@@ -29,8 +31,9 @@ export default function ContractorsPage() {
   const [rows, setRows] = useState<ContractorRow[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [paymentTarget, setPaymentTarget] = useState<{ id: string; full_name: string } | null>(null)
 
-  useEffect(() => {
+  function load() {
     const q = orgParam()
     Promise.all([
       apiFetch<Contractor[]>(`/contractors?${q}&order=full_name.asc`),
@@ -39,7 +42,9 @@ export default function ContractorsPage() {
       const bMap = new Map(balances.map(b => [b.contractor_id, b.balance]))
       setRows(contractors.map(c => ({ ...c, balance: bMap.get(c.id) ?? 0 })))
     }).finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
 
   const filtered = rows.filter(r =>
     !search || r.full_name.toLowerCase().includes(search.toLowerCase())
@@ -68,6 +73,7 @@ export default function ContractorsPage() {
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Email</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Баланс</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Статус</th>
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -84,15 +90,31 @@ export default function ContractorsPage() {
                       {r.is_active ? 'Активен' : 'Неактивен'}
                     </span>
                   </td>
+                  <td className="px-5 py-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPaymentTarget({ id: r.id, full_name: r.full_name })}
+                    >
+                      Принять платёж
+                    </Button>
+                  </td>
                 </tr>
               )
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-zinc-400">Ничего не найдено</td></tr>
+              <tr><td colSpan={6} className="px-5 py-8 text-center text-zinc-400">Ничего не найдено</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <PaymentDialog
+        open={paymentTarget !== null}
+        onClose={() => setPaymentTarget(null)}
+        onPosted={() => { setPaymentTarget(null); load() }}
+        preselectedContractor={paymentTarget}
+      />
     </div>
   )
 }
