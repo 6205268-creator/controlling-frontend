@@ -6,9 +6,10 @@ import DashboardPage from './pages/DashboardPage'
 import PlotsPage from './pages/PlotsPage'
 import MembersPage from './pages/MembersPage'
 import MetersPage from './pages/MetersPage'
-import ContractorsPage from './pages/ContractorsPage'
+import CounterpartiesPage from './pages/CounterpartiesPage'
 import DebtorsPage from './pages/DebtorsPage'
 import JournalPage from './pages/JournalPage'
+import SettingsPage from './pages/SettingsPage'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />
@@ -32,9 +33,11 @@ export default function App() {
           <Route path="plots" element={<PlotsPage />} />
           <Route path="members" element={<MembersPage />} />
           <Route path="meters" element={<MetersPage />} />
-          <Route path="contractors" element={<ContractorsPage />} />
+          <Route path="counterparties" element={<CounterpartiesPage />} />
+          <Route path="contractors" element={<Navigate to="/counterparties" replace />} />
           <Route path="debtors" element={<DebtorsPage />} />
           <Route path="journal" element={<JournalPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
