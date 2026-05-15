@@ -171,8 +171,6 @@ export async function updatePlot(
   })
 }
 
-// --- Meters ---
-
 export interface PlotSummary {
   id: string
   number: string
@@ -187,6 +185,8 @@ export async function getPlotsByOwner(ownerId: string): Promise<PlotSummary[]> {
   return apiFetch<PlotSummary[]>(`/plot_summary?owner_id=eq.${ownerId}&${orgParam()}`)
 }
 
+// --- Meters ---
+
 export async function addMeter(params: {
   orgId: string
   plotId: string
@@ -197,10 +197,10 @@ export async function addMeter(params: {
     method: 'POST',
     body: JSON.stringify({
       organization_id: params.orgId,
-      plot_id:         params.plotId,
-      meter_type:      params.meterType,
-      serial_number:   params.serialNumber,
-      is_active:       true,
+      plot_id: params.plotId,
+      meter_type: params.meterType,
+      serial_number: params.serialNumber,
+      is_active: true,
     }),
   })
 }

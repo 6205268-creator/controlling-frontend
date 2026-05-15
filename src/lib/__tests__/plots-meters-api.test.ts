@@ -9,7 +9,7 @@ vi.mock('../auth', () => ({
   logout: vi.fn(),
 }))
 
-import { updatePlot, addMeter, updateMeter, cancelDocument } from '../api'
+import { updatePlot, addMeter, updateMeter, cancelDocument, getPlotsByOwner } from '../api'
 
 function ok204() {
   return Promise.resolve({ ok: true, status: 204, json: async () => ({}) })
@@ -57,6 +57,16 @@ describe('updateMeter', () => {
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
     expect(body.meter_type).toBe('electricity')
     expect(body.is_active).toBe(false)
+  })
+})
+
+describe('getPlotsByOwner', () => {
+  it('fetches /plot_summary filtered by owner_id', async () => {
+    mockFetch.mockResolvedValueOnce(okJson([{ id: 'plot-1', number: '1', area: 6.05, is_active: true, owner_id: 'owner-1', owner_name: 'Test', owner_phone: null }]))
+    const result = await getPlotsByOwner('owner-1')
+    expect(result).toHaveLength(1)
+    expect(mockFetch.mock.calls[0][0]).toContain('/plot_summary')
+    expect(mockFetch.mock.calls[0][0]).toContain('owner_id=eq.owner-1')
   })
 })
 
