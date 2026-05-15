@@ -1,20 +1,10 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam, updatePlot } from '../lib/api'
+import { apiFetch, orgParam, updatePlot, type PlotSummary } from '../lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import OwnershipDialog, { type PlotOption } from '../components/OwnershipDialog'
-
-interface PlotSummary {
-  id: string
-  number: string
-  area: number
-  is_active: boolean
-  owner_id: string | null
-  owner_name: string | null
-  owner_phone: string | null
-}
 
 type FilterTab = 'all' | 'active' | 'inactive'
 
@@ -142,22 +132,24 @@ export default function PlotsPage() {
                     {p.is_active ? 'Активен' : 'Неактивен'}
                   </span>
                 </td>
-                <td className="px-5 py-3 text-right flex items-center justify-end gap-3">
-                  {!p.owner_id && (
+                <td className="px-5 py-3 text-right">
+                  <div className="flex items-center justify-end gap-3">
+                    {!p.owner_id && (
+                      <button
+                        className="text-xs text-blue-600 hover:underline whitespace-nowrap"
+                        onClick={() => openForPlot(p)}
+                      >
+                        Назначить владельца
+                      </button>
+                    )}
                     <button
-                      className="text-xs text-blue-600 hover:underline whitespace-nowrap"
-                      onClick={() => openForPlot(p)}
+                      className="text-zinc-400 hover:text-zinc-700 transition-colors"
+                      title="Редактировать"
+                      onClick={() => openEdit(p)}
                     >
-                      Назначить владельца
+                      <Pencil size={14} />
                     </button>
-                  )}
-                  <button
-                    className="text-zinc-400 hover:text-zinc-700 transition-colors"
-                    title="Редактировать"
-                    onClick={() => openEdit(p)}
-                  >
-                    <Pencil size={14} />
-                  </button>
+                  </div>
                 </td>
               </tr>
             ))}
