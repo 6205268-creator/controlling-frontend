@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Home, Users, Zap, CreditCard, LogOut, Menu,
+  LayoutDashboard, Home, Users, Zap, CreditCard, LogOut, Menu, AlertCircle, BookOpen,
 } from 'lucide-react'
 import { logout, getName, getRole } from '../lib/auth'
 
@@ -11,6 +11,8 @@ const NAV = [
   { to: '/members', icon: Users, label: 'Члены СТ', end: false },
   { to: '/meters', icon: Zap, label: 'Счётчики', end: false },
   { to: '/contractors', icon: CreditCard, label: 'Плательщики', end: false },
+  { to: '/debtors', icon: AlertCircle, label: 'Должники', end: false },
+  { to: '/journal', icon: BookOpen, label: 'Журнал', end: false },
 ]
 
 export default function Sidebar() {

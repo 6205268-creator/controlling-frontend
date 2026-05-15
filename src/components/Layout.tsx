@@ -7,6 +7,8 @@ const TITLES: Record<string, string> = {
   '/members': 'Члены СТ',
   '/meters': 'Счётчики',
   '/contractors': 'Плательщики',
+  '/debtors': 'Должники',
+  '/journal': 'Журнал',
 }
 
 export default function Layout() {
