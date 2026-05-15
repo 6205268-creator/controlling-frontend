@@ -12,7 +12,7 @@ const NAV = [
   { to: '/meters',         icon: Zap,             label: 'Счётчики',    end: false },
   { to: '/counterparties', icon: Briefcase,       label: 'Контрагенты', end: false },
   { to: '/debtors',        icon: AlertCircle,     label: 'Должники',    end: false },
-  { to: '/journal',        icon: BookOpen,        label: 'Журнал',      end: false },
+  { to: '/journal',        icon: BookOpen,        label: 'Журнал операций', end: false },
   { to: '/settings',       icon: Settings,        label: 'Настройки',   end: false },
 ]
 
