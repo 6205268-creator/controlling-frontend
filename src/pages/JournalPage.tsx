@@ -1,41 +1,12 @@
 import { useEffect, useState } from 'react'
 import { apiFetch, orgParam, type JournalItem } from '../lib/api'
 import { Input } from '@/components/ui/input'
-
-const DOC_TYPE_LABELS: Record<string, string> = {
-  payment: 'Платёж',
-  accrual: 'Начисление',
-  distribution: 'Распределение',
-  meter_reading: 'Показание счётчика',
-  meter_charge: 'Начисление по счётчику',
-  period_close: 'Закрытие периода',
-  meter_correction: 'Корректировка счётчика',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Черновик',
-  posted: 'Проведён',
-  cancelled: 'Отменён',
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-zinc-100 text-zinc-500',
-  posted: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-600',
-}
-
-function fmt(amount: number | null): string {
-  if (amount === null) return '—'
-  return amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' BYN'
-}
-
-function fmtDate(d: string): string {
-  return d.split('-').reverse().join('.')
-}
+import { DOC_TYPE_LABELS, STATUS_LABELS, STATUS_COLORS, fmt, fmtDate } from '../lib/docLabels'
 
 export default function JournalPage() {
   const [docs, setDocs] = useState<JournalItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -46,6 +17,7 @@ export default function JournalPage() {
   useEffect(() => {
     apiFetch<JournalItem[]>(`/doc_journal?${orgParam()}&order=doc_date.desc&limit=100`)
       .then(setDocs)
+      .catch(e => setError(e instanceof Error ? e.message : 'Ошибка загрузки'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -59,6 +31,7 @@ export default function JournalPage() {
   })
 
   if (loading) return <p className="text-zinc-400 text-sm">Загрузка...</p>
+  if (error) return <p className="text-red-600 text-sm">{error}</p>
 
   return (
     <div>

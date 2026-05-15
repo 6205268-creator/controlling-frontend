@@ -41,7 +41,7 @@ export default function DebtorsPage() {
       {/* Cards */}
       <div className="space-y-3">
         {rows.map(row => (
-          <div key={row.object_id} className="bg-white rounded-lg border border-zinc-200 px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
+          <div key={`${row.object_type}:${row.object_id}`} className="bg-white rounded-lg border border-zinc-200 px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="font-semibold text-zinc-900 truncate">{row.object_name}</p>

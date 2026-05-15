@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch, orgParam, type JournalItem } from '../lib/api'
 import { Button } from '@/components/ui/button'
 import PaymentDialog from '../components/PaymentDialog'
+import { DOC_TYPE_LABELS, STATUS_LABELS, STATUS_COLORS, fmt, fmtDate } from '../lib/docLabels'
 
 interface ObjectDebt {
   total_debt: number
@@ -9,37 +10,6 @@ interface ObjectDebt {
 
 interface PlotSummaryItem { id: string }
 interface ContractorItem { id: string }
-
-const DOC_TYPE_LABELS: Record<string, string> = {
-  payment: 'Платёж',
-  accrual: 'Начисление',
-  distribution: 'Распределение',
-  meter_reading: 'Показание счётчика',
-  meter_charge: 'Начисление по счётчику',
-  period_close: 'Закрытие периода',
-  meter_correction: 'Корректировка счётчика',
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Черновик',
-  posted: 'Проведён',
-  cancelled: 'Отменён',
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-zinc-100 text-zinc-500',
-  posted: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-600',
-}
-
-function fmt(amount: number | null): string {
-  if (amount === null) return '—'
-  return amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' BYN'
-}
-
-function fmtDate(d: string): string {
-  return d.split('-').reverse().join('.')
-}
 
 export default function DashboardPage() {
   const [docs, setDocs] = useState<JournalItem[]>([])
