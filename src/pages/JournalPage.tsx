@@ -20,6 +20,19 @@ export default function JournalPage() {
   const [filterDateTo, setFilterDateTo] = useState('')
   const [filterContractor, setFilterContractor] = useState('')
 
+  async function loadDocs() {
+    try {
+      const data = await apiFetch<JournalItem[]>(`/doc_journal?${orgParam()}&order=doc_date.desc&limit=100`)
+      setDocs(data)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка загрузки')
+    }
+  }
+
+  useEffect(() => {
+    loadDocs().finally(() => setLoading(false))
+  }, [])
+
   async function confirmCancel() {
     if (!cancelTarget) return
     setCancelLoading(true)
@@ -27,24 +40,13 @@ export default function JournalPage() {
     try {
       await cancelDocument(cancelTarget)
       setCancelTarget(null)
-      setLoading(true)
-      apiFetch<JournalItem[]>(`/doc_journal?${orgParam()}&order=doc_date.desc&limit=100`)
-        .then(setDocs)
-        .catch(e => setError(e instanceof Error ? e.message : 'Ошибка загрузки'))
-        .finally(() => setLoading(false))
+      await loadDocs()
     } catch {
       setCancelError('Ошибка отмены операции')
     } finally {
       setCancelLoading(false)
     }
   }
-
-  useEffect(() => {
-    apiFetch<JournalItem[]>(`/doc_journal?${orgParam()}&order=doc_date.desc&limit=100`)
-      .then(setDocs)
-      .catch(e => setError(e instanceof Error ? e.message : 'Ошибка загрузки'))
-      .finally(() => setLoading(false))
-  }, [])
 
   const filtered = docs.filter(d => {
     if (filterType && d.doc_type !== filterType) return false
@@ -166,7 +168,7 @@ export default function JournalPage() {
             <p className="text-sm text-zinc-500 mb-4">Это действие нельзя отменить.</p>
             {cancelError && <p className="text-red-600 text-sm mb-3">{cancelError}</p>}
             <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelLoading}>
+              <Button variant="outline" onClick={() => { setCancelTarget(null); setCancelError(null) }} disabled={cancelLoading}>
                 Нет
               </Button>
               <Button variant="destructive" onClick={confirmCancel} disabled={cancelLoading}>
