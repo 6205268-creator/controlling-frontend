@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam } from '../lib/api'
+import { apiFetch, orgParam, updatePlot } from '../lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Pencil } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import OwnershipDialog, { type PlotOption } from '../components/OwnershipDialog'
 
 interface PlotSummary {
@@ -23,6 +25,36 @@ export default function PlotsPage() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [preselectedPlot, setPreselectedPlot] = useState<PlotOption | null>(null)
+  const [editTarget, setEditTarget] = useState<PlotSummary | null>(null)
+  const [editForm, setEditForm] = useState({ number: '', area: '', is_active: true })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+
+  function openEdit(p: PlotSummary) {
+    setEditTarget(p)
+    setEditForm({ number: p.number, area: String(p.area), is_active: p.is_active })
+    setEditError(null)
+  }
+
+  async function saveEdit() {
+    if (!editTarget) return
+    const area = parseFloat(editForm.area)
+    if (!editForm.number.trim() || isNaN(area) || area <= 0) {
+      setEditError('Заполните все поля корректно')
+      return
+    }
+    setEditSaving(true)
+    setEditError(null)
+    try {
+      await updatePlot(editTarget.id, { number: editForm.number.trim(), area, is_active: editForm.is_active })
+      setEditTarget(null)
+      loadPlots()
+    } catch {
+      setEditError('Ошибка сохранения')
+    } finally {
+      setEditSaving(false)
+    }
+  }
 
   function loadPlots() {
     setLoading(true)
@@ -110,7 +142,7 @@ export default function PlotsPage() {
                     {p.is_active ? 'Активен' : 'Неактивен'}
                   </span>
                 </td>
-                <td className="px-5 py-3 text-right">
+                <td className="px-5 py-3 text-right flex items-center justify-end gap-3">
                   {!p.owner_id && (
                     <button
                       className="text-xs text-blue-600 hover:underline whitespace-nowrap"
@@ -119,6 +151,13 @@ export default function PlotsPage() {
                       Назначить владельца
                     </button>
                   )}
+                  <button
+                    className="text-zinc-400 hover:text-zinc-700 transition-colors"
+                    title="Редактировать"
+                    onClick={() => openEdit(p)}
+                  >
+                    <Pencil size={14} />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -130,6 +169,52 @@ export default function PlotsPage() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={editTarget !== null} onOpenChange={open => { if (!open) setEditTarget(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать участок</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm text-zinc-600 block mb-1">Номер участка</label>
+              <Input
+                value={editForm.number}
+                onChange={e => setEditForm(f => ({ ...f, number: e.target.value }))}
+                placeholder="Например: 5"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-zinc-600 block mb-1">Площадь (сотки)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={editForm.area}
+                onChange={e => setEditForm(f => ({ ...f, area: e.target.value }))}
+                placeholder="Например: 6.05"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="plot-active"
+                checked={editForm.is_active}
+                onChange={e => setEditForm(f => ({ ...f, is_active: e.target.checked }))}
+                className="h-4 w-4"
+              />
+              <label htmlFor="plot-active" className="text-sm text-zinc-600">Участок активен</label>
+            </div>
+            {editError && <p className="text-red-600 text-sm">{editError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>Отмена</Button>
+            <Button onClick={saveEdit} disabled={editSaving}>
+              {editSaving ? 'Сохранение...' : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <OwnershipDialog
         open={dialogOpen}
