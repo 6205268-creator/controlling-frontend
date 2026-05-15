@@ -106,3 +106,55 @@ export async function postOwnership(docId: string): Promise<RpcResult> {
     body: JSON.stringify({ p_doc_id: docId }),
   })
 }
+
+// --- Payments ---
+
+export interface PaymentParams {
+  orgId: string
+  contractorId: string
+  amount: number
+  docDate?: string
+  paymentRef?: string
+}
+
+export async function createPayment(params: PaymentParams): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/create_payment', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_org_id:        params.orgId,
+      p_contractor_id: params.contractorId,
+      p_amount:        params.amount,
+      p_doc_date:      params.docDate ?? null,
+      p_payment_ref:   params.paymentRef ?? null,
+    }),
+  })
+}
+
+export async function postPayment(docId: string): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/post_payment', {
+    method: 'POST',
+    body: JSON.stringify({ p_doc_id: docId }),
+  })
+}
+
+// --- Debtors ---
+
+export interface DebtorItem {
+  organization_id: string
+  object_type: string
+  object_id: string
+  object_name: string
+  owner_name: string
+  total_debt: number
+}
+
+// --- Journal ---
+
+export interface JournalItem {
+  id: string
+  doc_type: string
+  doc_date: string
+  status: string
+  amount: number | null
+  contractor_name: string | null
+}
