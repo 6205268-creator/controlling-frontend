@@ -18,7 +18,7 @@
 | Create | `src/pages/DebtorsPage.tsx` | Debtors card page |
 | Create | `src/pages/JournalPage.tsx` | Document journal with filters |
 | Create | `src/lib/__tests__/payment-api.test.ts` | Tests for new API functions |
-| Modify | `src/lib/api.ts` | + PaymentParams, createPayment, postPayment, DebtBreakdown, DebtorItem, JournalItem |
+| Modify | `src/lib/api.ts` | + PaymentParams, createPayment, postPayment, DebtorItem, JournalItem |
 | Modify | `src/App.tsx` | + routes /debtors, /journal |
 | Modify | `src/components/Sidebar.tsx` | + Должники, Журнал nav entries |
 | Modify | `src/components/Layout.tsx` | + TITLES for /debtors, /journal |
@@ -44,8 +44,8 @@ export interface PaymentParams {
   orgId: string
   contractorId: string
   amount: number
-  docDate: string      // YYYY-MM-DD
-  eripRef?: string
+  docDate?: string     // YYYY-MM-DD, optional (backend defaults to today)
+  paymentRef?: string  // ЕРИП-референс, optional
 }
 
 export async function createPayment(params: PaymentParams): Promise<RpcResult> {
@@ -55,8 +55,8 @@ export async function createPayment(params: PaymentParams): Promise<RpcResult> {
       p_org_id:        params.orgId,
       p_contractor_id: params.contractorId,
       p_amount:        params.amount,
-      p_doc_date:      params.docDate,
-      p_erip_ref:      params.eripRef ?? null,
+      p_doc_date:      params.docDate ?? null,
+      p_payment_ref:   params.paymentRef ?? null,
     }),
   })
 }
@@ -69,18 +69,17 @@ export async function postPayment(docId: string): Promise<RpcResult> {
 }
 
 // --- Debtors ---
-
-export interface DebtBreakdown {
-  debt_type: string
-  amount: number
-}
+// /debtors view is per-object (plot), not per-contractor.
+// Backend does not yet have a per-contractor aggregated view.
+// Future: request backend to add contractor-level debtor view with type breakdown.
 
 export interface DebtorItem {
-  contractor_id: string
-  full_name: string
-  phone: string | null
+  organization_id: string
+  object_type: string   // e.g. 'plot'
+  object_id: string
+  object_name: string   // e.g. 'Участок №5'
+  owner_name: string    // contractor full name
   total_debt: number
-  breakdown: DebtBreakdown[] | null
 }
 
 // --- Journal ---
@@ -136,14 +135,14 @@ describe('createPayment', () => {
     expect(body.p_erip_ref).toBeNull()
   })
 
-  it('includes erip_ref when provided', async () => {
+  it('includes payment_ref when provided', async () => {
     mockFetch.mockResolvedValueOnce(okJson({ ok: true, doc_id: 'doc-pay-2' }))
     await createPayment({
       orgId: 'org-1', contractorId: 'c-1', amount: 50,
-      docDate: '2026-05-14', eripRef: 'ERIP-12345',
+      docDate: '2026-05-14', paymentRef: 'ERIP-12345',
     })
     const body = JSON.parse(mockFetch.mock.calls[0][1].body)
-    expect(body.p_erip_ref).toBe('ERIP-12345')
+    expect(body.p_payment_ref).toBe('ERIP-12345')
   })
 
   it('returns ok:false on backend error', async () => {
@@ -232,7 +231,7 @@ export default function PaymentDialog({ open, onClose, onPosted, preselectedCont
   const [suggestions, setSuggestions] = useState<Contractor[]>([])
   const [amount, setAmount] = useState('')
   const [docDate, setDocDate] = useState(new Date().toISOString().slice(0, 10))
-  const [eripRef, setEripRef] = useState('')
+  const [paymentRef, setPaymentRef] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -244,7 +243,7 @@ export default function PaymentDialog({ open, onClose, onPosted, preselectedCont
     setQuery('')
     setAmount('')
     setDocDate(new Date().toISOString().slice(0, 10))
-    setEripRef('')
+    setPaymentRef('')
     setError(null)
     setSuccess(false)
     setSuggestions([])
@@ -272,7 +271,7 @@ export default function PaymentDialog({ open, onClose, onPosted, preselectedCont
         contractorId: selectedContractor.id,
         amount: amountNum,
         docDate,
-        eripRef: eripRef.trim() || undefined,
+        paymentRef: paymentRef.trim() || undefined,
       })
       if (!doc.ok) { setError(doc.error ?? 'Ошибка создания платежа'); setSubmitting(false); return }
 
@@ -362,8 +361,8 @@ export default function PaymentDialog({ open, onClose, onPosted, preselectedCont
             <label className="text-sm font-medium text-zinc-700">ЕРИП-референс</label>
             <Input
               placeholder="Необязательно"
-              value={eripRef}
-              onChange={e => setEripRef(e.target.value)}
+              value={paymentRef}
+              onChange={e => setPaymentRef(e.target.value)}
             />
           </div>
         </div>
@@ -841,18 +840,13 @@ git commit -m "feat: add per-row payment button to ContractorsPage"
 **Files:**
 - Create: `src/pages/DebtorsPage.tsx`
 
-> **REQUIRED SKILL before writing code:** Invoke `frontend-design` skill. Brief it with: "Debtors page for a gardening association treasurer app. Shows debtor cards (not a table). Each card: full name bold + phone, total debt in red on the right (e.g. '−100 BYN'), row of red badge tags per debt type below (e.g. 'Членский взнос: 70 BYN'). Summary line at top: 'N должников · общий долг −X BYN'. Empty state when no debtors. Dark zinc sidebar context, white cards on zinc-100 background." Apply visual recommendations to Step 1 code.
+> **REQUIRED SKILL before writing code:** Invoke `frontend-design` skill. Brief it with: "Debtors page for a gardening association treasurer app. Shows debt cards (not a table). One card per plot/object with debt. Each card: object name bold (e.g. 'Участок №5') on the left, owner name below in grey, total debt in red on the right (e.g. '−100 BYN'). No breakdown badges (backend doesn't support yet). Summary line at top: 'N объектов с долгом · общий долг −X BYN'. Empty state when no debts. Dark zinc sidebar context, white cards on zinc-100 background." Apply visual recommendations to Step 1 code.
 
-> **IMPORTANT — verify backend schema first:**
-> Before writing the grouping logic, run:
-> ```bash
-> curl -s "http://localhost:3100/debtors?organization_id=eq.<YOUR_ORG_ID>&limit=5" | python3 -m json.tool
-> ```
-> Replace `<YOUR_ORG_ID>` with the org id from localStorage (`controlling_org_id`).
->
-> - If the response has `debt_type` and `type_amount` fields (multiple rows per contractor) → the grouping logic in step 1 is correct.
-> - If the response has only `total_debt` per contractor (one row per contractor, no breakdown) → remove the breakdown grouping, show only the total debt card without type badges.
-> - If the `debtors` view doesn't exist (404) → stop and flag to the user: backend view needs to be created.
+> **Backend note (verified 2026-05-14):**
+> `/debtors` view returns one row per **object** (plot), not per contractor.
+> Fields: `organization_id`, `object_type`, `object_id`, `object_name`, `owner_name`, `total_debt`.
+> No debt type breakdown available yet — that requires a future backend view.
+> Future improvement: ask backend team to add `debtors_by_contractor` view with type breakdown.
 
 - [ ] **Step 1: Create DebtorsPage.tsx**
 
@@ -863,62 +857,26 @@ import { useEffect, useState } from 'react'
 import { apiFetch, orgParam } from '../lib/api'
 
 interface DebtorRow {
-  contractor_id: string
-  full_name: string
-  phone: string | null
+  organization_id: string
+  object_type: string
+  object_id: string
+  object_name: string
+  owner_name: string
   total_debt: number
-  debt_type?: string | null
-  type_amount?: number | null
-}
-
-interface DebtorCard {
-  contractor_id: string
-  full_name: string
-  phone: string | null
-  total_debt: number
-  breakdown: { debt_type: string; amount: number }[]
-}
-
-const DEBT_TYPE_LABELS: Record<string, string> = {
-  membership_fee: 'Членский взнос',
-  electricity: 'Электричество',
-  land_tax: 'Земельный налог',
-  target: 'Целевой взнос',
-  penalty: 'Пеня',
 }
 
 function fmt(n: number): string {
   return n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function groupRows(rows: DebtorRow[]): DebtorCard[] {
-  const map = new Map<string, DebtorCard>()
-  for (const row of rows) {
-    if (!map.has(row.contractor_id)) {
-      map.set(row.contractor_id, {
-        contractor_id: row.contractor_id,
-        full_name: row.full_name,
-        phone: row.phone,
-        total_debt: row.total_debt,
-        breakdown: [],
-      })
-    }
-    const card = map.get(row.contractor_id)!
-    if (row.debt_type && row.type_amount) {
-      card.breakdown.push({ debt_type: row.debt_type, amount: row.type_amount })
-    }
-  }
-  return Array.from(map.values()).sort((a, b) => b.total_debt - a.total_debt)
-}
-
 export default function DebtorsPage() {
-  const [cards, setCards] = useState<DebtorCard[]>([])
+  const [rows, setRows] = useState<DebtorRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    apiFetch<DebtorRow[]>(`/debtors?${orgParam()}`)
-      .then(rows => setCards(groupRows(rows)))
+    apiFetch<DebtorRow[]>(`/debtors?${orgParam()}&order=total_debt.desc`)
+      .then(setRows)
       .catch(e => setError(e instanceof Error ? e.message : 'Ошибка загрузки'))
       .finally(() => setLoading(false))
   }, [])
@@ -926,50 +884,35 @@ export default function DebtorsPage() {
   if (loading) return <p className="text-zinc-400 text-sm">Загрузка...</p>
   if (error) return <p className="text-red-600 text-sm">{error}</p>
 
-  const totalDebt = cards.reduce((s, c) => s + c.total_debt, 0)
+  const totalDebt = rows.reduce((s, r) => s + r.total_debt, 0)
 
   return (
     <div>
       {/* Summary */}
       <p className="text-sm text-zinc-500 mb-5">
-        {cards.length} должников · общий долг{' '}
+        {rows.length} объектов с долгом · общий долг{' '}
         <span className="text-red-600 font-semibold">−{fmt(totalDebt)} BYN</span>
       </p>
 
-      {cards.length === 0 && (
+      {rows.length === 0 && (
         <div className="bg-white rounded-lg border border-zinc-200 px-5 py-10 text-center text-zinc-400 text-sm">
-          Должников нет
+          Долгов нет
         </div>
       )}
 
       {/* Cards */}
       <div className="space-y-3">
-        {cards.map(card => (
-          <div key={card.contractor_id} className="bg-white rounded-lg border border-zinc-200 px-5 py-4">
+        {rows.map(row => (
+          <div key={row.object_id} className="bg-white rounded-lg border border-zinc-200 px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-semibold text-zinc-900">{card.full_name}</p>
-                {card.phone && (
-                  <p className="text-sm text-zinc-400 mt-0.5">{card.phone}</p>
-                )}
+                <p className="font-semibold text-zinc-900">{row.object_name}</p>
+                <p className="text-sm text-zinc-400 mt-0.5">{row.owner_name}</p>
               </div>
               <p className="text-lg font-bold text-red-600 whitespace-nowrap shrink-0">
-                −{fmt(card.total_debt)} BYN
+                −{fmt(row.total_debt)} BYN
               </p>
             </div>
-
-            {card.breakdown.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {card.breakdown.map(b => (
-                  <span
-                    key={b.debt_type}
-                    className="text-xs px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-100 font-medium"
-                  >
-                    {DEBT_TYPE_LABELS[b.debt_type] ?? b.debt_type}: {fmt(b.amount)} BYN
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </div>
