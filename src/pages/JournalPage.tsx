@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam, type JournalItem } from '../lib/api'
+import { apiFetch, orgParam, type JournalItem, cancelDocument } from '../lib/api'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Ban } from 'lucide-react'
 import { DOC_TYPE_LABELS, STATUS_LABELS, STATUS_COLORS, fmt, fmtDate } from '../lib/docLabels'
 
 export default function JournalPage() {
@@ -8,11 +10,34 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [cancelTarget, setCancelTarget] = useState<string | null>(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
   const [filterContractor, setFilterContractor] = useState('')
+
+  async function confirmCancel() {
+    if (!cancelTarget) return
+    setCancelLoading(true)
+    setCancelError(null)
+    try {
+      await cancelDocument(cancelTarget)
+      setCancelTarget(null)
+      setLoading(true)
+      apiFetch<JournalItem[]>(`/doc_journal?${orgParam()}&order=doc_date.desc&limit=100`)
+        .then(setDocs)
+        .catch(e => setError(e instanceof Error ? e.message : 'Ошибка загрузки'))
+        .finally(() => setLoading(false))
+    } catch {
+      setCancelError('Ошибка отмены операции')
+    } finally {
+      setCancelLoading(false)
+    }
+  }
 
   useEffect(() => {
     apiFetch<JournalItem[]>(`/doc_journal?${orgParam()}&order=doc_date.desc&limit=100`)
@@ -76,7 +101,7 @@ export default function JournalPage() {
         </div>
 
         <Input
-          placeholder="Плательщик..."
+          placeholder="Контрагент..."
           value={filterContractor}
           onChange={e => setFilterContractor(e.target.value)}
           className="max-w-xs"
@@ -92,9 +117,10 @@ export default function JournalPage() {
             <tr className="bg-zinc-50">
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Дата</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Тип</th>
-              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Плательщик</th>
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Контрагент</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Сумма</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Статус</th>
+              <th className="px-5 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
@@ -109,11 +135,22 @@ export default function JournalPage() {
                     {STATUS_LABELS[d.status] ?? d.status}
                   </span>
                 </td>
+                <td className="px-5 py-3">
+                  {d.status === 'posted' && (
+                    <button
+                      className="text-zinc-400 hover:text-red-600 transition-colors"
+                      title="Отменить операцию"
+                      onClick={() => { setCancelTarget(d.id); setCancelError(null) }}
+                    >
+                      <Ban size={14} />
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-8 text-center text-zinc-400 text-sm">
+                <td colSpan={6} className="px-5 py-8 text-center text-zinc-400 text-sm">
                   {docs.length === 0 ? 'Документов нет' : 'Нет документов по фильтру'}
                 </td>
               </tr>
@@ -121,6 +158,24 @@ export default function JournalPage() {
           </tbody>
         </table>
       </div>
+
+      {cancelTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg border border-zinc-200 p-6 max-w-sm w-full mx-4">
+            <h3 className="text-sm font-semibold text-zinc-900 mb-2">Отменить операцию?</h3>
+            <p className="text-sm text-zinc-500 mb-4">Будут созданы обратные движения. Это действие нельзя отменить.</p>
+            {cancelError && <p className="text-red-600 text-sm mb-3">{cancelError}</p>}
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelLoading}>
+                Нет
+              </Button>
+              <Button variant="destructive" onClick={confirmCancel} disabled={cancelLoading}>
+                {cancelLoading ? 'Отмена...' : 'Отменить операцию'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
