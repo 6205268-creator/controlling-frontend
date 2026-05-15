@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiFetch, orgParam, type JournalItem } from '../lib/api'
 import { Button } from '@/components/ui/button'
 import PaymentDialog from '../components/PaymentDialog'
@@ -50,20 +51,20 @@ export default function DashboardPage() {
 
       {/* Карточки */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg border border-zinc-200 p-5">
+        <Link to="/plots" className="block bg-white rounded-lg border border-zinc-200 p-5 hover:border-zinc-400 transition-colors">
           <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">Участков</p>
           <p className="text-2xl font-bold text-zinc-900">{plotCount ?? '—'}</p>
-        </div>
-        <div className="bg-white rounded-lg border border-zinc-200 p-5">
-          <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">Плательщиков</p>
+        </Link>
+        <Link to="/counterparties" className="block bg-white rounded-lg border border-zinc-200 p-5 hover:border-zinc-400 transition-colors">
+          <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">Контрагентов</p>
           <p className="text-2xl font-bold text-zinc-900">{contractorCount ?? '—'}</p>
-        </div>
-        <div className="bg-white rounded-lg border border-zinc-200 p-5">
+        </Link>
+        <Link to="/debtors" className="block bg-white rounded-lg border border-zinc-200 p-5 hover:border-zinc-400 transition-colors">
           <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">Общий долг</p>
           <p className="text-2xl font-bold text-red-600">
             {totalDebt !== null ? fmt(totalDebt) : '—'}
           </p>
-        </div>
+        </Link>
       </div>
 
       {/* Таблица операций */}
