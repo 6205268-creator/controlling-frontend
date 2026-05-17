@@ -165,13 +165,14 @@ export async function updatePlot(
   id: string,
   data: { number: string; area: number; is_active: boolean }
 ): Promise<void> {
-  await apiPost<RpcResult>('/rpc/update_plot', {
+  const r = await apiPost<RpcResult>('/rpc/update_plot', {
     p_org_id:    getOrgId(),
     p_plot_id:   id,
     p_number:    data.number,
     p_area:      data.area,
     p_is_active: data.is_active,
   })
+  if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
 }
 
 export interface PlotSummary {
@@ -182,6 +183,7 @@ export interface PlotSummary {
   owner_id: string | null
   owner_name: string | null
   owner_phone: string | null
+  total_debt: number
 }
 
 export async function getPlotsByOwner(ownerId: string): Promise<PlotSummary[]> {
@@ -196,25 +198,47 @@ export async function addMeter(params: {
   meterType: string
   serialNumber: string
 }): Promise<void> {
-  await apiPost<RpcResult>('/rpc/create_meter', {
+  const r = await apiPost<RpcResult>('/rpc/create_meter', {
     p_org_id:        params.orgId,
     p_plot_id:       params.plotId,
     p_meter_type:    params.meterType,
     p_serial_number: params.serialNumber,
   })
+  if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
 }
 
 export async function updateMeter(
   id: string,
   data: { meter_type: string; serial_number: string; is_active: boolean }
 ): Promise<void> {
-  await apiPost<RpcResult>('/rpc/update_meter', {
+  const r = await apiPost<RpcResult>('/rpc/update_meter', {
     p_org_id:        getOrgId(),
     p_meter_id:      id,
     p_meter_type:    data.meter_type,
     p_serial_number: data.serial_number,
     p_is_active:     data.is_active,
   })
+  if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
+}
+
+export async function updateContractor(
+  id: string,
+  data: {
+    full_name: string
+    contractor_type: 'individual' | 'legal_entity'
+    phone: string | null
+    email: string | null
+  }
+): Promise<void> {
+  const r = await apiPost<RpcResult>('/rpc/update_contractor', {
+    p_org_id:          getOrgId(),
+    p_contractor_id:   id,
+    p_full_name:       data.full_name,
+    p_contractor_type: data.contractor_type,
+    p_phone:           data.phone,
+    p_email:           data.email,
+  })
+  if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
 }
 
 // --- Cancel document ---

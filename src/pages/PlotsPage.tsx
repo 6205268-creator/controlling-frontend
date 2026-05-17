@@ -3,6 +3,12 @@ import { apiFetch, orgParam, updatePlot, type PlotSummary } from '../lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
+
+function fmtDebt(d: number): { text: string; cls: string } {
+  if (d > 0) return { text: `${d.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} BYN`, cls: 'text-red-600 font-semibold' }
+  if (d < 0) return { text: `+${Math.abs(d).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} BYN`, cls: 'text-green-600' }
+  return { text: '—', cls: 'text-zinc-400' }
+}
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import OwnershipDialog, { type PlotOption } from '../components/OwnershipDialog'
 
@@ -115,6 +121,7 @@ export default function PlotsPage() {
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">№</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Площадь</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Владелец</th>
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Долг</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Статус</th>
               <th className="px-5 py-2.5"></th>
             </tr>
@@ -125,6 +132,7 @@ export default function PlotsPage() {
                 <td className="px-5 py-3 font-semibold text-zinc-900">{p.number}</td>
                 <td className="px-5 py-3 text-zinc-600">{p.area.toFixed(2)} сот.</td>
                 <td className="px-5 py-3 text-zinc-700">{p.owner_name ?? '—'}</td>
+                <td className={`px-5 py-3 ${fmtDebt(p.total_debt).cls}`}>{fmtDebt(p.total_debt).text}</td>
                 <td className="px-5 py-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     p.is_active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'
@@ -155,7 +163,7 @@ export default function PlotsPage() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-8 text-center text-zinc-400">Ничего не найдено</td>
+                <td colSpan={6} className="px-5 py-8 text-center text-zinc-400">Ничего не найдено</td>
               </tr>
             )}
           </tbody>

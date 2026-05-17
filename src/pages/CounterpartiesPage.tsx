@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam } from '../lib/api'
+import { apiFetch, orgParam, updateContractor } from '../lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { User, Building2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { User, Building2, Pencil } from 'lucide-react'
 import PaymentDialog from '../components/PaymentDialog'
 
 interface Counterparty {
@@ -38,6 +39,15 @@ export default function CounterpartiesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [paymentTarget, setPaymentTarget] = useState<{ id: string; full_name: string } | null>(null)
+  const [editTarget, setEditTarget] = useState<CounterpartyRow | null>(null)
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    contractor_type: 'individual' as 'individual' | 'legal_entity',
+    phone: '',
+    email: '',
+  })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   function load() {
     const q = orgParam()
@@ -52,6 +62,40 @@ export default function CounterpartiesPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  function openEdit(r: CounterpartyRow) {
+    setEditTarget(r)
+    setEditForm({
+      full_name: r.full_name,
+      contractor_type: r.contractor_type,
+      phone: r.phone ?? '',
+      email: r.email ?? '',
+    })
+    setEditError(null)
+  }
+
+  async function saveEdit() {
+    if (!editTarget || !editForm.full_name.trim()) {
+      setEditError('Наименование обязательно')
+      return
+    }
+    setEditSaving(true)
+    setEditError(null)
+    try {
+      await updateContractor(editTarget.id, {
+        full_name: editForm.full_name.trim(),
+        contractor_type: editForm.contractor_type,
+        phone: editForm.phone.trim() || null,
+        email: editForm.email.trim() || null,
+      })
+      setEditTarget(null)
+      load()
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : 'Ошибка сохранения')
+    } finally {
+      setEditSaving(false)
+    }
+  }
 
   if (error) return <p className="text-red-600 text-sm">{error}</p>
 
@@ -132,10 +176,20 @@ export default function CounterpartiesPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3">
-                    <Button size="sm" variant="outline"
-                      onClick={() => setPaymentTarget({ id: r.id, full_name: r.full_name })}>
-                      Принять платёж
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0"
+                        title="Редактировать"
+                        onClick={() => openEdit(r)}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <Button size="sm" variant="outline"
+                        onClick={() => setPaymentTarget({ id: r.id, full_name: r.full_name })}>
+                        Принять платёж
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -146,6 +200,62 @@ export default function CounterpartiesPage() {
           </tbody>
         </table>
       </div>
+
+      <Dialog open={editTarget !== null} onOpenChange={open => { if (!open) setEditTarget(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать контрагента</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm text-zinc-600 block mb-1">Наименование</label>
+              <Input
+                value={editForm.full_name}
+                onChange={e => setEditForm(f => ({ ...f, full_name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-zinc-600 block mb-1">Тип</label>
+              <select
+                className="w-full border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white"
+                value={editForm.contractor_type}
+                onChange={e =>
+                  setEditForm(f => ({
+                    ...f,
+                    contractor_type: e.target.value as 'individual' | 'legal_entity',
+                  }))
+                }
+              >
+                <option value="individual">Физлицо</option>
+                <option value="legal_entity">Юрлицо</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-zinc-600 block mb-1">Телефон</label>
+              <Input
+                value={editForm.phone}
+                onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="+375 29 ..."
+              />
+            </div>
+            <div>
+              <label className="text-sm text-zinc-600 block mb-1">Email</label>
+              <Input
+                value={editForm.email}
+                onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="example@mail.com"
+              />
+            </div>
+            {editError && <p className="text-red-600 text-sm">{editError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>Отмена</Button>
+            <Button onClick={saveEdit} disabled={editSaving}>
+              {editSaving ? 'Сохранение...' : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PaymentDialog
         open={paymentTarget !== null}
