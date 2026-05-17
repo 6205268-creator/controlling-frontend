@@ -241,8 +241,42 @@ export async function updateContractor(
   if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
 }
 
-// --- Cancel document ---
+// --- Cancel / delete document ---
 
 export async function cancelDocument(docId: string): Promise<RpcResult> {
   return apiPost<RpcResult>('/rpc/cancel_document', { p_doc_id: docId })
+}
+
+export async function deleteDraft(docId: string): Promise<void> {
+  const r = await apiPost<RpcResult>('/rpc/delete_draft', { p_doc_id: docId })
+  if (!r.ok) throw new Error(r.error ?? 'Ошибка удаления')
+}
+
+// --- Org settings ---
+
+export interface OrgSettings {
+  organization_id: string
+  lock_date: string | null
+  current_period: string | null
+}
+
+export async function getOrgSettings(): Promise<OrgSettings | null> {
+  const rows = await apiFetch<OrgSettings[]>(`/org_settings?${orgParam()}`)
+  return rows[0] ?? null
+}
+
+export async function setLockDate(lockDate: string | null): Promise<void> {
+  const r = await apiPost<RpcResult>('/rpc/set_lock_date', {
+    p_org_id:    getOrgId(),
+    p_lock_date: lockDate,
+  })
+  if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
+}
+
+export async function setCurrentPeriod(period: string): Promise<void> {
+  const r = await apiPost<RpcResult>('/rpc/set_current_period', {
+    p_org_id:  getOrgId(),
+    p_period:  period,
+  })
+  if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
 }

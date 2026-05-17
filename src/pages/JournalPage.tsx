@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam, type JournalItem, cancelDocument } from '../lib/api'
+import { apiFetch, orgParam, type JournalItem, cancelDocument, deleteDraft } from '../lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Ban } from 'lucide-react'
+import { Ban, Trash2 } from 'lucide-react'
 import { DOC_TYPE_LABELS, STATUS_LABELS, STATUS_COLORS, fmt, fmtDate } from '../lib/docLabels'
 
 export default function JournalPage() {
@@ -13,6 +13,9 @@ export default function JournalPage() {
   const [cancelTarget, setCancelTarget] = useState<string | null>(null)
   const [cancelLoading, setCancelLoading] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -45,6 +48,21 @@ export default function JournalPage() {
       setCancelError('Ошибка отмены операции')
     } finally {
       setCancelLoading(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeleteLoading(true)
+    setDeleteError(null)
+    try {
+      await deleteDraft(deleteTarget)
+      setDeleteTarget(null)
+      await loadDocs()
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Ошибка удаления')
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -138,15 +156,26 @@ export default function JournalPage() {
                   </span>
                 </td>
                 <td className="px-5 py-3">
-                  {d.status === 'posted' && (
-                    <button
-                      className="text-zinc-400 hover:text-red-600 transition-colors"
-                      title="Отменить операцию"
-                      onClick={() => { setCancelTarget(d.id); setCancelError(null) }}
-                    >
-                      <Ban size={14} />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {d.status === 'posted' && (
+                      <button
+                        className="text-zinc-400 hover:text-red-600 transition-colors"
+                        title="Отменить операцию"
+                        onClick={() => { setCancelTarget(d.id); setCancelError(null) }}
+                      >
+                        <Ban size={14} />
+                      </button>
+                    )}
+                    {d.status === 'draft' && (
+                      <button
+                        className="text-zinc-400 hover:text-red-600 transition-colors"
+                        title="Удалить черновик"
+                        onClick={() => { setDeleteTarget(d.id); setDeleteError(null) }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -160,6 +189,24 @@ export default function JournalPage() {
           </tbody>
         </table>
       </div>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg border border-zinc-200 p-6 max-w-sm w-full mx-4">
+            <h3 className="text-sm font-semibold text-zinc-900 mb-2">Удалить черновик?</h3>
+            <p className="text-sm text-zinc-500 mb-4">Документ будет удалён без возможности восстановления.</p>
+            {deleteError && <p className="text-red-600 text-sm mb-3">{deleteError}</p>}
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError(null) }} disabled={deleteLoading}>
+                Нет
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete} disabled={deleteLoading}>
+                {deleteLoading ? 'Удаление...' : 'Удалить'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cancelTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
