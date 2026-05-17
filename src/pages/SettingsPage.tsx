@@ -56,7 +56,7 @@ export default function SettingsPage() {
 
       {/* Дата оперативного учёта — только чтение */}
       <div className="bg-white rounded-lg border border-zinc-200 p-5">
-        <h2 className="text-sm font-semibold text-zinc-900 mb-1">Дата оперативного учёта</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 mb-1">Дата и время актуальности оперативного учёта</h2>
         <p className="text-xs text-zinc-500 mb-2">
           Устанавливается автоматически при проведении и отмене документов.
         </p>
