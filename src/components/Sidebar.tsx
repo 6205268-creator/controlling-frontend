@@ -5,6 +5,15 @@ import {
 } from 'lucide-react'
 import { logout, getName, getRole } from '../lib/auth'
 
+function formatBuildTime(iso: string): string {
+  const d = new Date(iso)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `v ${dd}.${mm} ${hh}:${min}`
+}
+
 const NAV = [
   { to: '/',               icon: LayoutDashboard, label: 'Дашборд',    end: true  },
   { to: '/plots',          icon: Home,            label: 'Участки',     end: false },
@@ -77,6 +86,7 @@ export default function Sidebar() {
           <div className="px-2.5 mt-1">
             <p className="text-xs text-zinc-400 font-medium truncate">{getName() ?? '—'}</p>
             <p className="text-xs text-zinc-600 truncate">{getRole() ?? ''}</p>
+            <p className="text-xs text-zinc-700 truncate mt-1">{formatBuildTime(__BUILD_TIME__)}</p>
           </div>
         )}
       </div>
