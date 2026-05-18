@@ -177,6 +177,10 @@ export default function CounterpartiesPage() {
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline"
+                        onClick={() => setPaymentTarget({ id: r.id, full_name: r.full_name })}>
+                        Принять платёж
+                      </Button>
                       <button
                         type="button"
                         className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0"
@@ -185,10 +189,6 @@ export default function CounterpartiesPage() {
                       >
                         <Pencil size={14} />
                       </button>
-                      <Button size="sm" variant="outline"
-                        onClick={() => setPaymentTarget({ id: r.id, full_name: r.full_name })}>
-                        Принять платёж
-                      </Button>
                     </div>
                   </td>
                 </tr>
