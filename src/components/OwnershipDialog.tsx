@@ -37,7 +37,8 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [success, setSuccess] = useState<'saved' | 'posted' | null>(null)
+
   useEffect(() => {
     if (open) setSelectedPlot(preselectedPlot)
   }, [open, preselectedPlot])
@@ -52,36 +53,53 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
     setDocDate(new Date().toISOString().slice(0, 10))
     setNotes('')
     setError(null)
-    setSuccess(false)
+    setSuccess(null)
   }
 
   function handleClose() { reset(); onClose() }
 
-  async function handleSubmit() {
+  async function resolveContractorId(): Promise<string | null> {
+    if (contractorMode === 'create') {
+      if (!newName.trim()) { setError('Введите ФИО или название'); return null }
+      const cr = await createContractor({ orgId, fullName: newName, contractorType: newType, phone: newPhone || undefined })
+      if (!cr.ok) { setError(cr.error ?? 'Ошибка создания контрагента'); return null }
+      return cr.contractor_id as string
+    }
+    return selectedContractor?.id ?? null
+  }
+
+  async function handleSave() {
     if (!selectedPlot) { setError('Выберите участок'); return }
-    setSubmitting(true)
-    setError(null)
+    setSubmitting(true); setError(null)
     try {
-      let contractorId: string | null = selectedContractor?.id ?? null
-
-      if (contractorMode === 'create') {
-        if (!newName.trim()) { setError('Введите ФИО или название'); setSubmitting(false); return }
-        const cr = await createContractor({ orgId, fullName: newName, contractorType: newType, phone: newPhone || undefined })
-        if (!cr.ok) { setError(cr.error ?? 'Ошибка создания контрагента'); setSubmitting(false); return }
-        contractorId = cr.contractor_id as string
-      }
-
-      if (!contractorId) { setError('Выберите или создайте владельца'); setSubmitting(false); return }
-
+      const contractorId = await resolveContractorId()
+      if (!contractorId) { setSubmitting(false); return }
       const doc = await createOwnership({
         orgId, contractorId, objectType: 'plot', objectId: selectedPlot.id, docDate, notes: notes || undefined,
       })
-      if (!doc.ok) { setError(doc.error ?? 'Ошибка создания документа'); setSubmitting(false); return }
+      if (!doc.ok) { setError(doc.error ?? 'Ошибка сохранения'); setSubmitting(false); return }
+      setSuccess('saved')
+      setTimeout(() => { reset(); onPosted(); onClose() }, 1200)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Неизвестная ошибка')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
+  async function handlePost() {
+    if (!selectedPlot) { setError('Выберите участок'); return }
+    setSubmitting(true); setError(null)
+    try {
+      const contractorId = await resolveContractorId()
+      if (!contractorId) { setSubmitting(false); return }
+      const doc = await createOwnership({
+        orgId, contractorId, objectType: 'plot', objectId: selectedPlot.id, docDate, notes: notes || undefined,
+      })
+      if (!doc.ok) { setError(doc.error ?? 'Ошибка сохранения'); setSubmitting(false); return }
       const posted = await postOwnership(doc.doc_id as string)
       if (!posted.ok) { setError(posted.error ?? 'Ошибка проведения'); setSubmitting(false); return }
-
-      setSuccess(true)
+      setSuccess('posted')
       setTimeout(() => { reset(); onPosted(); onClose() }, 1200)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка')
@@ -103,7 +121,13 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
           <button onClick={handleClose} className="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
         </div>
 
-        {/* Блок 1 — Участок */}
+        {/* Дата документа — вверху */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-zinc-700">Дата документа</label>
+          <Input type="date" value={docDate} onChange={e => setDocDate(e.target.value)} className="w-44" />
+        </div>
+
+        {/* Участок */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-zinc-700">Участок</label>
           <select
@@ -125,7 +149,7 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
           )}
         </div>
 
-        {/* Блок 2 — Владелец */}
+        {/* Владелец */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-zinc-700">Владелец</label>
 
@@ -182,34 +206,34 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
           )}
         </div>
 
-        {/* Блок 3 — Дата и заметки */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-700">Дата документа</label>
-            <Input type="date" value={docDate} onChange={e => setDocDate(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-700">Заметки</label>
-            <Input placeholder="Необязательно" value={notes} onChange={e => setNotes(e.target.value)} />
-          </div>
+        {/* Заметки — на всю ширину */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-zinc-700">Заметки</label>
+          <Input placeholder="Необязательно" value={notes} onChange={e => setNotes(e.target.value)} />
         </div>
 
         {error && (
           <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>
         )}
-        {success && (
-          <p className="text-green-700 text-sm bg-green-50 border border-green-200 rounded px-3 py-2">
-            Право владения оформлено
-          </p>
+        {success === 'saved' && (
+          <p className="text-green-700 text-sm bg-green-50 border border-green-200 rounded px-3 py-2">Документ сохранён</p>
+        )}
+        {success === 'posted' && (
+          <p className="text-green-700 text-sm bg-green-50 border border-green-200 rounded px-3 py-2">Документ проведён</p>
         )}
 
-        <div className="flex gap-3 pt-1">
-          <Button variant="outline" onClick={handleClose} className="flex-1" disabled={submitting}>
+        <div className="flex gap-2 pt-1">
+          <Button variant="outline" onClick={handleClose} disabled={submitting}>
             Отмена
           </Button>
-          <Button onClick={handleSubmit} className="flex-1" disabled={submitting || success}>
-            {submitting ? 'Проводим...' : 'Провести документ'}
-          </Button>
+          <div className="flex gap-2 ml-auto">
+            <Button variant="outline" onClick={handleSave} disabled={submitting || !!success}>
+              {submitting ? '...' : 'Сохранить'}
+            </Button>
+            <Button onClick={handlePost} disabled={submitting || !!success}>
+              {submitting ? '...' : 'Сохранить и провести'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
