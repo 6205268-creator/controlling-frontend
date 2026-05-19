@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiFetch, orgParam, type Contractor } from '../lib/api'
 import { Input } from '@/components/ui/input'
+import { List } from 'lucide-react'
 
 interface Props {
   value: Contractor | null
@@ -8,7 +9,7 @@ interface Props {
   placeholder?: string
 }
 
-export default function ContractorPicker({ value, onChange, placeholder = 'Выберите владельца...' }: Props) {
+export default function ContractorPicker({ value, onChange, placeholder = 'Начните вводить ФИО...' }: Props) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [all, setAll] = useState<Contractor[]>([])
@@ -23,8 +24,7 @@ export default function ContractorPicker({ value, onChange, placeholder = 'Вы�
     return () => document.removeEventListener('mousedown', onMouseDown)
   }, [])
 
-  async function handleOpen() {
-    setOpen(true)
+  async function loadAll() {
     if (all.length > 0) return
     setLoading(true)
     try {
@@ -35,6 +35,22 @@ export default function ContractorPicker({ value, onChange, placeholder = 'Вы�
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleType(q: string) {
+    setQuery(q)
+    if (q.trim().length > 0) {
+      setOpen(true)
+      loadAll()
+    } else {
+      setOpen(false)
+    }
+  }
+
+  function handleListButton() {
+    if (open) { setOpen(false); return }
+    loadAll()
+    setOpen(true)
   }
 
   const filtered = query.trim()
@@ -58,12 +74,22 @@ export default function ContractorPicker({ value, onChange, placeholder = 'Вы�
 
   return (
     <div className="relative" ref={ref}>
-      <Input
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        onFocus={handleOpen}
-        placeholder={placeholder}
-      />
+      <div className="flex items-center border border-zinc-200 rounded-md focus-within:ring-1 focus-within:ring-zinc-400 bg-white">
+        <Input
+          value={query}
+          onChange={e => handleType(e.target.value)}
+          placeholder={placeholder}
+          className="border-0 shadow-none focus-visible:ring-0 flex-1"
+        />
+        <button
+          type="button"
+          onMouseDown={e => { e.preventDefault(); handleListButton() }}
+          className={`px-2.5 text-zinc-400 hover:text-zinc-700 transition-colors border-l border-zinc-200 self-stretch flex items-center ${open && !query ? 'text-zinc-700' : ''}`}
+          title="Выбрать из списка"
+        >
+          <List size={15} />
+        </button>
+      </div>
       {open && (
         <div className="absolute z-10 w-full bg-white border border-zinc-200 rounded-md shadow-md mt-1 max-h-52 overflow-y-auto">
           {loading && <p className="px-3 py-2.5 text-sm text-zinc-400">Загрузка...</p>}
