@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam, searchContractors, getPlotsByOwner, addMeter, updateMeter, type Contractor, type PlotSummary } from '../lib/api'
+import { apiFetch, orgParam, searchContractors, getPlotsByOwner, addMeter, updateMeter, getOrgSettings, type Contractor, type PlotSummary } from '../lib/api'
 import { getOrgId } from '../lib/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -41,6 +41,7 @@ export default function MetersPage() {
   const [rows, setRows] = useState<MeterRow[]>([])
   const [filter, setFilter] = useState<TypeFilter>('all')
   const [loading, setLoading] = useState(true)
+  const [enabledTypes, setEnabledTypes] = useState<string[]>(['water', 'electricity', 'gas'])
 
   // --- Add meter state ---
   const [addOpen, setAddOpen] = useState(false)
@@ -49,7 +50,7 @@ export default function MetersPage() {
   const [addOwner, setAddOwner] = useState<Contractor | null>(null)
   const [addPlots, setAddPlots] = useState<PlotSummary[]>([])
   const [addPlotId, setAddPlotId] = useState('')
-  const [addType, setAddType] = useState('water')
+  const [addType, setAddType] = useState(() => enabledTypes[0] ?? 'water')
   const [addSerial, setAddSerial] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
   const [addSaving, setAddSaving] = useState(false)
@@ -66,7 +67,11 @@ export default function MetersPage() {
     Promise.all([
       apiFetch<Meter[]>(`/meters?${q}&order=serial_number.asc`),
       apiFetch<Plot[]>(`/plots?${q}&select=id,number`),
-    ]).then(([meters, plots]) => {
+      getOrgSettings(),
+    ]).then(([meters, plots, settings]) => {
+      if (settings?.enabled_meter_types?.length) {
+        setEnabledTypes(settings.enabled_meter_types)
+      }
       const pMap = new Map(plots.map(p => [p.id, p.number]))
       setRows(meters.map(m => ({
         id: m.id,
@@ -115,7 +120,7 @@ export default function MetersPage() {
 
   function resetAddForm() {
     setAddQuery(''); setAddSuggestions([]); setAddOwner(null)
-    setAddPlots([]); setAddPlotId(''); setAddType('water')
+    setAddPlots([]); setAddPlotId(''); setAddType(enabledTypes[0] ?? 'water')
     setAddSerial(''); setAddError(null)
   }
 
@@ -173,10 +178,10 @@ export default function MetersPage() {
   }
 
   const tabs: { key: TypeFilter; label: string }[] = [
-    { key: 'all',         label: `Все (${counts.all})` },
-    { key: 'water',       label: `Вода (${counts.water})` },
-    { key: 'electricity', label: `Электричество (${counts.electricity})` },
-    { key: 'gas',         label: `Газ (${counts.gas})` },
+    { key: 'all', label: `Все (${counts.all})` },
+    ...(['water', 'electricity', 'gas'] as const)
+      .filter(t => enabledTypes.includes(t))
+      .map(t => ({ key: t as TypeFilter, label: `${TYPE_LABELS[t]} (${counts[t]})` })),
   ]
 
   if (loading) return <p className="text-zinc-400 text-sm">Загрузка...</p>
@@ -284,9 +289,9 @@ export default function MetersPage() {
               <label className="text-sm text-zinc-600 block mb-1">Тип счётчика</label>
               <select className="w-full border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white"
                 value={addType} onChange={e => setAddType(e.target.value)}>
-                <option value="water">Вода</option>
-                <option value="electricity">Электричество</option>
-                <option value="gas">Газ</option>
+                {enabledTypes.includes('water')       && <option value="water">Вода</option>}
+                {enabledTypes.includes('electricity') && <option value="electricity">Электричество</option>}
+                {enabledTypes.includes('gas')         && <option value="gas">Газ</option>}
               </select>
             </div>
 

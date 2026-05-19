@@ -258,6 +258,7 @@ export interface OrgSettings {
   organization_id: string
   lock_date: string | null
   current_period: string | null
+  enabled_meter_types: string[]
 }
 
 export async function getOrgSettings(): Promise<OrgSettings | null> {
@@ -277,6 +278,14 @@ export async function setCurrentPeriod(period: string): Promise<void> {
   const r = await apiPost<RpcResult>('/rpc/set_current_period', {
     p_org_id:  getOrgId(),
     p_period:  period,
+  })
+  if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
+}
+
+export async function setMeterTypes(types: string[]): Promise<void> {
+  const r = await apiPost<RpcResult>('/rpc/set_meter_types', {
+    p_org_id: getOrgId(),
+    p_types:  types,
   })
   if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
 }

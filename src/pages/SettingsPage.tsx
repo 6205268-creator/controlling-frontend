@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { Droplets, Zap, Flame, Check } from 'lucide-react'
-import { getOrgSettings, setLockDate, type OrgSettings } from '../lib/api'
+import { getOrgSettings, setLockDate, setMeterTypes, type OrgSettings } from '../lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -27,15 +26,25 @@ export default function SettingsPage() {
   const [lockError, setLockError] = useState<string | null>(null)
   const [lockOk, setLockOk] = useState(false)
 
-  const [meterTypes, setMeterTypes] = useState<Record<string, boolean>>({
+  const [meterTypes, setMeterTypesState] = useState<Record<string, boolean>>({
     water: true, electricity: true, gas: true,
   })
+  const [meterSaving, setMeterSaving] = useState(false)
+  const [meterError, setMeterError] = useState<string | null>(null)
+  const [meterOk, setMeterOk] = useState(false)
 
   async function load() {
     try {
       const s = await getOrgSettings()
       setSettings(s)
       setLockInput(s?.lock_date ?? '')
+      if (s?.enabled_meter_types) {
+        setMeterTypesState({
+          water:       s.enabled_meter_types.includes('water'),
+          electricity: s.enabled_meter_types.includes('electricity'),
+          gas:         s.enabled_meter_types.includes('gas'),
+        })
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка загрузки')
     } finally {
@@ -55,6 +64,23 @@ export default function SettingsPage() {
       setLockError(e instanceof Error ? e.message : 'Ошибка')
     } finally {
       setLockSaving(false)
+    }
+  }
+
+  async function saveMeterTypes() {
+    const selected = Object.entries(meterTypes).filter(([, v]) => v).map(([k]) => k)
+    if (selected.length === 0) {
+      setMeterError('Выберите хотя бы один тип')
+      return
+    }
+    setMeterSaving(true); setMeterError(null); setMeterOk(false)
+    try {
+      await setMeterTypes(selected)
+      setMeterOk(true)
+    } catch (e) {
+      setMeterError(e instanceof Error ? e.message : 'Ошибка')
+    } finally {
+      setMeterSaving(false)
     }
   }
 
@@ -120,10 +146,7 @@ export default function SettingsPage() {
 
       {/* Блок типов счётчиков */}
       <div className="bg-white rounded-lg border border-zinc-200 p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Типы счётчиков</h2>
-          <span className="text-xs bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full font-medium">В разработке</span>
-        </div>
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Типы счётчиков</h2>
         <p className="text-xs text-zinc-400 mb-4">
           Выберите типы, которые используются в учёте. Только они будут доступны при создании счётчика.
         </p>
@@ -139,7 +162,7 @@ export default function SettingsPage() {
               <input
                 type="checkbox"
                 checked={meterTypes[key]}
-                onChange={e => setMeterTypes(t => ({ ...t, [key]: e.target.checked }))}
+                onChange={e => { setMeterTypesState(t => ({ ...t, [key]: e.target.checked })); setMeterOk(false) }}
                 className="sr-only"
               />
               {meterTypes[key] && <Check size={13} className="text-blue-600 shrink-0" />}
@@ -149,12 +172,13 @@ export default function SettingsPage() {
           ))}
         </div>
 
-        <Button
-          size="sm"
-          onClick={() => toast.info('Функция недоступна', { description: 'Настройка типов счётчиков появится после обновления сервера.' })}
-        >
-          Сохранить
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button size="sm" onClick={saveMeterTypes} disabled={meterSaving}>
+            {meterSaving ? '...' : 'Сохранить'}
+          </Button>
+          {meterError && <p className="text-red-600 text-xs">{meterError}</p>}
+          {meterOk && <p className="text-green-600 text-xs">Сохранено</p>}
+        </div>
       </div>
 
     </div>
