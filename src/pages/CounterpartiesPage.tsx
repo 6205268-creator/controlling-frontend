@@ -147,7 +147,6 @@ export default function CounterpartiesPage() {
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Телефон</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Email</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Баланс</th>
-              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Статус</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Действия</th>
             </tr>
           </thead>
@@ -168,13 +167,6 @@ export default function CounterpartiesPage() {
                   <td className="px-5 py-3 text-zinc-600">{r.phone ?? '—'}</td>
                   <td className="px-5 py-3 text-zinc-600">{r.email ?? '—'}</td>
                   <td className={`px-5 py-3 ${bal.cls}`}>{bal.text}</td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      r.is_active ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'
-                    }`}>
-                      {r.is_active ? 'Активен' : 'Неактивен'}
-                    </span>
-                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
                       <Button size="sm" variant="outline"
