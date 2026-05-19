@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getOrgId } from '../lib/auth'
 import {
-  searchContractors,
   createContractor,
   createOwnership,
   postOwnership,
@@ -9,6 +8,7 @@ import {
 } from '../lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import ContractorPicker from './ContractorPicker'
 
 export interface PlotOption {
   id: string
@@ -29,8 +29,6 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
 
   const [selectedPlot, setSelectedPlot] = useState<PlotOption | null>(null)
   const [contractorMode, setContractorMode] = useState<'search' | 'create'>('search')
-  const [query, setQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<Contractor[]>([])
   const [selectedContractor, setSelectedContractor] = useState<Contractor | null>(null)
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<'individual' | 'legal_entity'>('individual')
@@ -40,25 +38,13 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   useEffect(() => {
     if (open) setSelectedPlot(preselectedPlot)
   }, [open, preselectedPlot])
 
-  useEffect(() => {
-    if (contractorMode !== 'search' || query.trim().length < 2) { setSuggestions([]); return }
-    if (searchTimer.current) clearTimeout(searchTimer.current)
-    searchTimer.current = setTimeout(async () => {
-      try { setSuggestions(await searchContractors(orgId, query)) } catch { setSuggestions([]) }
-    }, 300)
-  }, [query, contractorMode, orgId])
-
   function reset() {
     setSelectedPlot(preselectedPlot)
     setContractorMode('search')
-    setQuery('')
-    setSuggestions([])
     setSelectedContractor(null)
     setNewName('')
     setNewType('individual')
@@ -144,47 +130,19 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
           <label className="text-sm font-medium text-zinc-700">Владелец</label>
 
           {contractorMode === 'search' && (
-            <>
-              {selectedContractor ? (
-                <div className="flex items-center gap-2 border border-zinc-200 rounded-md px-3 py-2 bg-zinc-50">
-                  <span className="text-sm text-zinc-900 flex-1">{selectedContractor.full_name}</span>
-                  <button
-                    className="text-zinc-400 hover:text-zinc-600 text-xs"
-                    onClick={() => { setSelectedContractor(null); setQuery('') }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Input
-                    placeholder="Поиск по ФИО или телефону..."
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                  />
-                  {suggestions.length > 0 && (
-                    <div className="border border-zinc-200 rounded-md divide-y divide-zinc-100 max-h-36 overflow-y-auto">
-                      {suggestions.map(c => (
-                        <button
-                          key={c.id}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50"
-                          onClick={() => { setSelectedContractor(c); setSuggestions([]) }}
-                        >
-                          <span className="font-medium">{c.full_name}</span>
-                          {c.phone && <span className="text-zinc-400 ml-2">{c.phone}</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <button
-                    className="text-sm text-blue-600 hover:underline"
-                    onClick={() => setContractorMode('create')}
-                  >
-                    + Создать нового
-                  </button>
-                </div>
-              )}
-            </>
+            <div className="space-y-1.5">
+              <ContractorPicker
+                value={selectedContractor}
+                onChange={setSelectedContractor}
+                placeholder="Выберите или начните вводить ФИО..."
+              />
+              <button
+                className="text-sm text-blue-600 hover:underline"
+                onClick={() => setContractorMode('create')}
+              >
+                + Создать нового
+              </button>
+            </div>
           )}
 
           {contractorMode === 'create' && (

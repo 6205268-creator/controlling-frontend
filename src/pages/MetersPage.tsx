@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam, searchContractors, getPlotsByOwner, addMeter, updateMeter, getOrgSettings, type Contractor, type PlotSummary } from '../lib/api'
+import { apiFetch, orgParam, getPlotsByOwner, addMeter, updateMeter, getOrgSettings, type Contractor, type PlotSummary } from '../lib/api'
 import { getOrgId } from '../lib/auth'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pencil } from 'lucide-react'
+import ContractorPicker from '../components/ContractorPicker'
 
 interface Meter {
   id: string
@@ -45,8 +46,6 @@ export default function MetersPage() {
 
   // --- Add meter state ---
   const [addOpen, setAddOpen] = useState(false)
-  const [addQuery, setAddQuery] = useState('')
-  const [addSuggestions, setAddSuggestions] = useState<Contractor[]>([])
   const [addOwner, setAddOwner] = useState<Contractor | null>(null)
   const [addPlots, setAddPlots] = useState<PlotSummary[]>([])
   const [addPlotId, setAddPlotId] = useState('')
@@ -86,24 +85,12 @@ export default function MetersPage() {
   useEffect(() => { loadMeters() }, [])
 
   // --- Add meter handlers ---
-  async function onSearchChange(q: string) {
-    setAddQuery(q)
-    setAddOwner(null)
+  async function selectOwner(c: Contractor | null) {
+    setAddOwner(c)
     setAddPlots([])
     setAddPlotId('')
     setAddError(null)
-    if (q.length < 2) { setAddSuggestions([]); return }
-    const orgId = getOrgId() ?? ''
-    const results = await searchContractors(orgId, q)
-    setAddSuggestions(results)
-  }
-
-  async function selectOwner(c: Contractor) {
-    setAddOwner(c)
-    setAddSuggestions([])
-    setAddQuery(c.full_name)
-    setAddPlotId('')
-    setAddError(null)
+    if (!c) return
     setAddPlotsLoading(true)
     try {
       const plots = await getPlotsByOwner(c.id)
@@ -119,9 +106,8 @@ export default function MetersPage() {
   }
 
   function resetAddForm() {
-    setAddQuery(''); setAddSuggestions([]); setAddOwner(null)
-    setAddPlots([]); setAddPlotId(''); setAddType(enabledTypes[0] ?? 'water')
-    setAddSerial(''); setAddError(null)
+    setAddOwner(null); setAddPlots([]); setAddPlotId('')
+    setAddType(enabledTypes[0] ?? 'water'); setAddSerial(''); setAddError(null)
   }
 
   async function saveAdd() {
@@ -248,24 +234,10 @@ export default function MetersPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Добавить счётчик</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            {/* Owner search */}
-            <div className="relative">
+            {/* Owner picker */}
+            <div>
               <label className="text-sm text-zinc-600 block mb-1">Владелец</label>
-              <Input
-                value={addQuery}
-                onChange={e => onSearchChange(e.target.value)}
-                placeholder="Начните вводить ФИО..."
-              />
-              {addSuggestions.length > 0 && (
-                <div className="absolute z-10 w-full bg-white border border-zinc-200 rounded-md shadow mt-1">
-                  {addSuggestions.map(c => (
-                    <button key={c.id} className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50"
-                      onClick={() => selectOwner(c)}>
-                      {c.full_name}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <ContractorPicker value={addOwner} onChange={selectOwner} placeholder="Выберите или начните вводить ФИО..." />
             </div>
 
             {/* Plot selection */}
