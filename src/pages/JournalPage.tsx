@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam, type JournalItem, cancelDocument, deleteDraft } from '../lib/api'
-import { Input } from '@/components/ui/input'
+import { apiFetch, orgParam, type JournalItem, cancelDocument, deleteDraft, postOwnership } from '../lib/api'
 import { Button } from '@/components/ui/button'
-import { Ban, Trash2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Ban, Trash2, CheckCheck } from 'lucide-react'
 import { DOC_TYPE_LABELS, STATUS_LABELS, STATUS_COLORS, fmt, fmtDate } from '../lib/docLabels'
+import ContractorPicker from '../components/ContractorPicker'
+import type { Contractor } from '../lib/api'
 
 export default function JournalPage() {
   const [docs, setDocs] = useState<JournalItem[]>([])
@@ -17,11 +19,15 @@ export default function JournalPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  const [postTarget, setPostTarget] = useState<string | null>(null)
+  const [postLoading, setPostLoading] = useState(false)
+  const [postError, setPostError] = useState<string | null>(null)
+
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
-  const [filterContractor, setFilterContractor] = useState('')
+  const [filterContractor, setFilterContractor] = useState<Contractor | null>(null)
 
   async function loadDocs() {
     try {
@@ -51,6 +57,20 @@ export default function JournalPage() {
     }
   }
 
+  async function confirmPost() {
+    if (!postTarget) return
+    setPostLoading(true); setPostError(null)
+    try {
+      await postOwnership(postTarget)
+      setPostTarget(null)
+      await loadDocs()
+    } catch (e) {
+      setPostError(e instanceof Error ? e.message : 'Ошибка проведения')
+    } finally {
+      setPostLoading(false)
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return
     setDeleteLoading(true)
@@ -71,7 +91,7 @@ export default function JournalPage() {
     if (filterStatus && d.status !== filterStatus) return false
     if (filterDateFrom && d.doc_date < filterDateFrom) return false
     if (filterDateTo && d.doc_date > filterDateTo) return false
-    if (filterContractor && !(d.contractor_name ?? '').toLowerCase().includes(filterContractor.toLowerCase())) return false
+    if (filterContractor && !(d.contractor_name ?? '').toLowerCase().includes(filterContractor.full_name.toLowerCase())) return false
     return true
   })
 
@@ -120,12 +140,13 @@ export default function JournalPage() {
           />
         </div>
 
-        <Input
-          placeholder="Контрагент..."
-          value={filterContractor}
-          onChange={e => setFilterContractor(e.target.value)}
-          className="max-w-xs"
-        />
+        <div className="w-64">
+          <ContractorPicker
+            value={filterContractor}
+            onChange={setFilterContractor}
+            placeholder="Контрагент..."
+          />
+        </div>
 
         <span className="text-sm text-zinc-400 self-center">{filtered.length} записей</span>
       </div>
@@ -166,6 +187,15 @@ export default function JournalPage() {
                         <Ban size={14} />
                       </button>
                     )}
+                    {d.status === 'draft' && d.doc_type === 'ownership' && (
+                      <button
+                        className="text-zinc-400 hover:text-green-600 transition-colors"
+                        title="Провести документ"
+                        onClick={() => { setPostTarget(d.id); setPostError(null) }}
+                      >
+                        <CheckCheck size={14} />
+                      </button>
+                    )}
                     {d.status === 'draft' && (
                       <button
                         className="text-zinc-400 hover:text-red-600 transition-colors"
@@ -189,6 +219,24 @@ export default function JournalPage() {
           </tbody>
         </table>
       </div>
+
+      {postTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg border border-zinc-200 p-6 max-w-sm w-full mx-4">
+            <h3 className="text-sm font-semibold text-zinc-900 mb-2">Провести документ?</h3>
+            <p className="text-sm text-zinc-500 mb-4">Документ будет проведён и вступит в силу.</p>
+            {postError && <p className="text-red-600 text-sm mb-3">{postError}</p>}
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => { setPostTarget(null); setPostError(null) }} disabled={postLoading}>
+                Отмена
+              </Button>
+              <Button onClick={confirmPost} disabled={postLoading}>
+                {postLoading ? 'Проведение...' : 'Провести'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
