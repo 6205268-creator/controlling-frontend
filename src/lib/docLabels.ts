@@ -1,5 +1,6 @@
 export const DOC_TYPE_LABELS: Record<string, string> = {
   payment: 'Платёж',
+  ownership: 'Право владения',
   accrual: 'Начисление',
   distribution: 'Распределение',
   meter_reading: 'Показание счётчика',

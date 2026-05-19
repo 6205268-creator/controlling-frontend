@@ -65,7 +65,8 @@ export default function OwnershipDialog({ open, onClose, onPosted, preselectedPl
       if (!cr.ok) { setError(cr.error ?? 'Ошибка создания контрагента'); return null }
       return cr.contractor_id as string
     }
-    return selectedContractor?.id ?? null
+    if (!selectedContractor) { setError('Выберите владельца'); return null }
+    return selectedContractor.id
   }
 
   async function handleSave() {
