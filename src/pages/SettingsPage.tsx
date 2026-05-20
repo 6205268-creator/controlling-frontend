@@ -170,7 +170,7 @@ export default function SettingsPage() {
               <button
                 key={key}
                 onClick={() => { setMeterTypesState(t => ({ ...t, [key]: !t[key] })); setMeterOk(false) }}
-                className={`relative flex flex-col items-center justify-center gap-1.5 w-20 h-16 rounded-lg border-2 transition-all duration-200 select-none cursor-pointer ${
+                className={`relative flex flex-col items-center justify-center gap-1.5 w-28 h-16 rounded-lg border-2 transition-all duration-200 select-none cursor-pointer ${
                   active
                     ? `${onClass} text-white shadow-lg`
                     : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'
