@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
   apiFetch, orgParam, type JournalItem, type PlotSummary,
-  cancelDocument, deleteDraft, unpostOwnership,
+  cancelDocument, deleteDraft, unpostOwnership, postOwnership, postPayment,
 } from '../lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Ban, Trash2, FileEdit, CheckCircle2 } from 'lucide-react'
-import { DOC_TYPE_LABELS, STATUS_LABELS, STATUS_COLORS, fmt, fmtDate } from '../lib/docLabels'
+import { Trash2, FileEdit, CheckCircle2 } from 'lucide-react'
+import { DOC_TYPE_LABELS, STATUS_LABELS, fmt, fmtDate } from '../lib/docLabels'
 import ContractorPicker from '../components/ContractorPicker'
 import OwnershipDialog, { type PlotOption } from '../components/OwnershipDialog'
 import type { Contractor } from '../lib/api'
@@ -26,6 +26,8 @@ export default function JournalPage() {
 
   const [editDocId, setEditDocId] = useState<string | null>(null)
   const [ownershipOpen, setOwnershipOpen] = useState(false)
+  const [postingId, setPostingId] = useState<string | null>(null)
+  const [postError, setPostError] = useState<string | null>(null)
 
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -97,6 +99,27 @@ export default function JournalPage() {
     }
   }
 
+  async function handlePost(d: JournalItem) {
+    setPostingId(d.id)
+    setPostError(null)
+    try {
+      let r
+      if (d.doc_type === 'ownership') {
+        r = await postOwnership(d.id)
+      } else if (d.doc_type === 'payment') {
+        r = await postPayment(d.id)
+      } else {
+        throw new Error(`Провести "${d.doc_type}" из журнала не поддерживается`)
+      }
+      if (!r.ok) throw new Error(r.error ?? 'Ошибка проведения')
+      await loadDocs()
+    } catch (e) {
+      setPostError(e instanceof Error ? e.message : 'Ошибка проведения')
+    } finally {
+      setPostingId(null)
+    }
+  }
+
   const filtered = docs.filter(d => {
     if (filterType && d.doc_type !== filterType) return false
     if (filterStatus && d.status !== filterStatus) return false
@@ -163,6 +186,10 @@ export default function JournalPage() {
         <span className="text-sm text-zinc-400 self-center">{filtered.length} записей</span>
       </div>
 
+      {postError && (
+        <p className="text-red-600 text-sm mb-3">{postError}</p>
+      )}
+
       <div className="bg-white rounded-lg border border-zinc-200">
         <table className="w-full text-sm">
           <thead>
@@ -171,7 +198,6 @@ export default function JournalPage() {
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Тип</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Контрагент</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Сумма</th>
-              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Статус</th>
               <th className="px-5 py-2.5"></th>
             </tr>
           </thead>
@@ -183,37 +209,14 @@ export default function JournalPage() {
                 <td className="px-5 py-3 text-zinc-700">{d.contractor_name ?? '—'}</td>
                 <td className="px-5 py-3 text-zinc-700">{fmt(d.amount)}</td>
                 <td className="px-5 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[d.status] ?? 'bg-zinc-100 text-zinc-500'}`}>
-                    {STATUS_LABELS[d.status] ?? d.status}
-                  </span>
-                </td>
-                <td className="px-5 py-3">
                   <div className="flex items-center gap-2 justify-end">
                     {d.status === 'draft' && d.doc_type === 'ownership' && (
                       <button
                         className="text-zinc-400 hover:text-blue-600 transition-colors"
-                        title="Открыть документ"
+                        title="Открыть и редактировать"
                         onClick={() => openOwnershipDraft(d)}
                       >
                         <FileEdit size={14} />
-                      </button>
-                    )}
-                    {d.status === 'posted' && d.doc_type === 'ownership' && (
-                      <button
-                        className="text-zinc-400 hover:text-amber-600 transition-colors"
-                        title="Отменить проведение"
-                        onClick={() => { setCancelTarget(d); setCancelError(null) }}
-                      >
-                        <Ban size={14} />
-                      </button>
-                    )}
-                    {d.status === 'posted' && d.doc_type !== 'ownership' && (
-                      <button
-                        className="text-zinc-400 hover:text-red-600 transition-colors"
-                        title="Отменить операцию"
-                        onClick={() => { setCancelTarget(d); setCancelError(null) }}
-                      >
-                        <Ban size={14} />
                       </button>
                     )}
                     {d.status === 'draft' && (
@@ -225,27 +228,31 @@ export default function JournalPage() {
                         <Trash2 size={14} />
                       </button>
                     )}
-                    {d.status === 'posted' && (
-                      <button
-                        className="text-zinc-400 hover:text-red-600 transition-colors"
-                        title="Удалить документ"
-                        onClick={() => { setDeleteTarget(d.id); setDeleteError(null) }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                    {d.status === 'posted' && (
-                      <span title="Документ проведён">
-                        <CheckCircle2 size={14} className="text-green-600 shrink-0" />
-                      </span>
-                    )}
+                    <button
+                      className={`transition-colors disabled:opacity-40 ${
+                        d.status === 'posted'
+                          ? 'text-green-500 hover:text-zinc-400'
+                          : 'text-zinc-300 hover:text-green-500'
+                      }`}
+                      title={d.status === 'posted' ? 'Отменить проведение' : 'Провести'}
+                      disabled={postingId === d.id}
+                      onClick={() => {
+                        if (d.status === 'posted') {
+                          setCancelTarget(d); setCancelError(null)
+                        } else {
+                          handlePost(d)
+                        }
+                      }}
+                    >
+                      <CheckCircle2 size={15} />
+                    </button>
                   </div>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-zinc-400 text-sm">
+                <td colSpan={5} className="px-5 py-8 text-center text-zinc-400 text-sm">
                   {docs.length === 0 ? 'Документов нет' : 'Нет документов по фильтру'}
                 </td>
               </tr>
@@ -263,43 +270,23 @@ export default function JournalPage() {
         editDocumentId={editDocId}
       />
 
-      {deleteTarget && (() => {
-        const targetDoc = docs.find(d => d.id === deleteTarget)
-        const isPosted = targetDoc?.status === 'posted'
-        return (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg border border-zinc-200 p-6 max-w-sm w-full mx-4">
-              {isPosted ? (
-                <>
-                  <h3 className="text-sm font-semibold text-zinc-900 mb-2">Удаление невозможно</h3>
-                  <p className="text-sm text-zinc-500 mb-4">
-                    Документ проведён. Для удаления сначала отмените проведение (кнопка <Ban size={12} className="inline" />).
-                  </p>
-                  <div className="flex justify-end">
-                    <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError(null) }}>
-                      Понятно
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-sm font-semibold text-zinc-900 mb-2">Удалить черновик?</h3>
-                  <p className="text-sm text-zinc-500 mb-4">Документ будет удалён без возможности восстановления.</p>
-                  {deleteError && <p className="text-red-600 text-sm mb-3">{deleteError}</p>}
-                  <div className="flex gap-3 justify-end">
-                    <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError(null) }} disabled={deleteLoading}>
-                      Нет
-                    </Button>
-                    <Button variant="destructive" onClick={confirmDelete} disabled={deleteLoading}>
-                      {deleteLoading ? 'Удаление...' : 'Удалить'}
-                    </Button>
-                  </div>
-                </>
-              )}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg border border-zinc-200 p-6 max-w-sm w-full mx-4">
+            <h3 className="text-sm font-semibold text-zinc-900 mb-2">Удалить черновик?</h3>
+            <p className="text-sm text-zinc-500 mb-4">Документ будет удалён без возможности восстановления.</p>
+            {deleteError && <p className="text-red-600 text-sm mb-3">{deleteError}</p>}
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError(null) }} disabled={deleteLoading}>
+                Нет
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete} disabled={deleteLoading}>
+                {deleteLoading ? 'Удаление...' : 'Удалить'}
+              </Button>
             </div>
           </div>
-        )
-      })()}
+        </div>
+      )}
 
       {cancelTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
