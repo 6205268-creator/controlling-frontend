@@ -49,6 +49,20 @@ export interface Contractor {
   phone: string | null
 }
 
+export interface OwnershipLine {
+  id: string
+  document_id: string
+  organization_id: string
+  contractor_id: string
+  contractor_name: string
+  object_type: string
+  object_id: string
+  doc_date: string
+  notes: string | null
+  status: 'draft' | 'posted'
+  shares: number
+}
+
 export interface RpcResult {
   ok: boolean
   error?: string
@@ -100,10 +114,45 @@ export async function createOwnership(params: {
   })
 }
 
-export async function postOwnership(docId: string): Promise<RpcResult> {
+export async function updateOwnership(params: {
+  ownId: string
+  contractorId: string
+  objectType: string
+  objectId: string
+  docDate: string
+  notes?: string
+}): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/update_ownership', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_own_id:        params.ownId,
+      p_contractor_id: params.contractorId,
+      p_object_type:   params.objectType,
+      p_object_id:     params.objectId,
+      p_doc_date:      params.docDate,
+      p_notes:         params.notes ?? null,
+    }),
+  })
+}
+
+export async function getOwnershipByDocumentId(documentId: string): Promise<OwnershipLine | null> {
+  const rows = await apiFetch<OwnershipLine[]>(
+    `/doc_ownership?document_id=eq.${documentId}&${orgParam()}&limit=1`
+  )
+  return rows[0] ?? null
+}
+
+export async function postOwnership(ownId: string): Promise<RpcResult> {
   return apiFetch<RpcResult>('/rpc/post_ownership', {
     method: 'POST',
-    body: JSON.stringify({ p_doc_id: docId }),
+    body: JSON.stringify({ p_doc_id: ownId }),
+  })
+}
+
+export async function unpostOwnership(ownId: string): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/unpost_ownership', {
+    method: 'POST',
+    body: JSON.stringify({ p_own_id: ownId }),
   })
 }
 
@@ -157,6 +206,7 @@ export interface JournalItem {
   status: string
   amount: number | null
   contractor_name: string | null
+  own_id: string | null
 }
 
 // --- Plots edit ---

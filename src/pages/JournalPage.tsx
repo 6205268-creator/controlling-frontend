@@ -1,23 +1,31 @@
 import { useEffect, useState } from 'react'
-import { apiFetch, orgParam, type JournalItem, cancelDocument, deleteDraft } from '../lib/api'
+import {
+  apiFetch, orgParam, type JournalItem, type PlotSummary,
+  cancelDocument, deleteDraft, unpostOwnership,
+} from '../lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Ban, Trash2 } from 'lucide-react'
+import { Ban, Trash2, FileEdit, CheckCircle2 } from 'lucide-react'
 import { DOC_TYPE_LABELS, STATUS_LABELS, STATUS_COLORS, fmt, fmtDate } from '../lib/docLabels'
 import ContractorPicker from '../components/ContractorPicker'
+import OwnershipDialog, { type PlotOption } from '../components/OwnershipDialog'
 import type { Contractor } from '../lib/api'
 
 export default function JournalPage() {
   const [docs, setDocs] = useState<JournalItem[]>([])
+  const [plots, setPlots] = useState<PlotOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [cancelTarget, setCancelTarget] = useState<string | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<JournalItem | null>(null)
   const [cancelLoading, setCancelLoading] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const [editDocId, setEditDocId] = useState<string | null>(null)
+  const [ownershipOpen, setOwnershipOpen] = useState(false)
 
   const [filterType, setFilterType] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -34,20 +42,41 @@ export default function JournalPage() {
     }
   }
 
+  async function loadPlots() {
+    try {
+      const data = await apiFetch<PlotSummary[]>(`/plot_summary?${orgParam()}`)
+      setPlots([...data]
+        .sort((a, b) => parseInt(a.number) - parseInt(b.number))
+        .map(p => ({ id: p.id, number: p.number, owner_name: p.owner_name })))
+    } catch { /* plots optional for non-ownership actions */ }
+  }
+
   useEffect(() => {
-    loadDocs().finally(() => setLoading(false))
+    Promise.all([loadDocs(), loadPlots()]).finally(() => setLoading(false))
   }, [])
+
+  function openOwnershipDraft(doc: JournalItem) {
+    setEditDocId(doc.id)
+    setOwnershipOpen(true)
+  }
 
   async function confirmCancel() {
     if (!cancelTarget) return
     setCancelLoading(true)
     setCancelError(null)
     try {
-      await cancelDocument(cancelTarget)
+      if (cancelTarget.doc_type === 'ownership') {
+        if (!cancelTarget.own_id) throw new Error('Не найден ID строки владения')
+        const r = await unpostOwnership(cancelTarget.own_id)
+        if (!r.ok) throw new Error(r.error ?? 'Ошибка отмены проведения')
+      } else {
+        const r = await cancelDocument(cancelTarget.id)
+        if (!r.ok) throw new Error(r.error ?? 'Ошибка отмены')
+      }
       setCancelTarget(null)
       await loadDocs()
-    } catch {
-      setCancelError('Ошибка отмены операции')
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : 'Ошибка отмены операции')
     } finally {
       setCancelLoading(false)
     }
@@ -80,9 +109,10 @@ export default function JournalPage() {
   if (loading) return <p className="text-zinc-400 text-sm">Загрузка...</p>
   if (error) return <p className="text-red-600 text-sm">{error}</p>
 
+  const isOwnershipUnpost = cancelTarget?.doc_type === 'ownership'
+
   return (
     <div>
-      {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-5">
         <select
           className="border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white text-zinc-700 min-w-[160px]"
@@ -133,7 +163,6 @@ export default function JournalPage() {
         <span className="text-sm text-zinc-400 self-center">{filtered.length} записей</span>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-lg border border-zinc-200">
         <table className="w-full text-sm">
           <thead>
@@ -160,22 +189,31 @@ export default function JournalPage() {
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-2 justify-end">
-                    {d.status === 'posted' && (
+                    {d.status === 'draft' && d.doc_type === 'ownership' && (
                       <button
-                        className="text-zinc-400 hover:text-red-600 transition-colors"
-                        title="Отменить операцию"
-                        onClick={() => { setCancelTarget(d.id); setCancelError(null) }}
+                        className="text-zinc-400 hover:text-blue-600 transition-colors"
+                        title="Открыть документ"
+                        onClick={() => openOwnershipDraft(d)}
+                      >
+                        <FileEdit size={14} />
+                      </button>
+                    )}
+                    {d.status === 'posted' && d.doc_type === 'ownership' && (
+                      <button
+                        className="text-zinc-400 hover:text-amber-600 transition-colors"
+                        title="Отменить проведение"
+                        onClick={() => { setCancelTarget(d); setCancelError(null) }}
                       >
                         <Ban size={14} />
                       </button>
                     )}
-                    {d.status === 'posted' && (
+                    {d.status === 'posted' && d.doc_type !== 'ownership' && (
                       <button
                         className="text-zinc-400 hover:text-red-600 transition-colors"
-                        title="Удалить документ"
-                        onClick={() => setDeleteTarget(d.id)}
+                        title="Отменить операцию"
+                        onClick={() => { setCancelTarget(d); setCancelError(null) }}
                       >
-                        <Trash2 size={14} />
+                        <Ban size={14} />
                       </button>
                     )}
                     {d.status === 'draft' && (
@@ -186,6 +224,20 @@ export default function JournalPage() {
                       >
                         <Trash2 size={14} />
                       </button>
+                    )}
+                    {d.status === 'posted' && (
+                      <button
+                        className="text-zinc-400 hover:text-red-600 transition-colors"
+                        title="Удалить документ"
+                        onClick={() => { setDeleteTarget(d.id); setDeleteError(null) }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                    {d.status === 'posted' && (
+                      <span title="Документ проведён">
+                        <CheckCircle2 size={14} className="text-green-600 shrink-0" />
+                      </span>
                     )}
                   </div>
                 </td>
@@ -201,6 +253,15 @@ export default function JournalPage() {
           </tbody>
         </table>
       </div>
+
+      <OwnershipDialog
+        open={ownershipOpen}
+        onClose={() => { setOwnershipOpen(false); setEditDocId(null) }}
+        onPosted={() => { loadDocs(); loadPlots() }}
+        preselectedPlot={null}
+        allPlots={plots}
+        editDocumentId={editDocId}
+      />
 
       {deleteTarget && (() => {
         const targetDoc = docs.find(d => d.id === deleteTarget)
@@ -243,15 +304,21 @@ export default function JournalPage() {
       {cancelTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg border border-zinc-200 p-6 max-w-sm w-full mx-4">
-            <h3 className="text-sm font-semibold text-zinc-900 mb-2">Отменить операцию?</h3>
-            <p className="text-sm text-zinc-500 mb-4">Это действие нельзя отменить.</p>
+            <h3 className="text-sm font-semibold text-zinc-900 mb-2">
+              {isOwnershipUnpost ? 'Отменить проведение?' : 'Отменить операцию?'}
+            </h3>
+            <p className="text-sm text-zinc-500 mb-4">
+              {isOwnershipUnpost
+                ? 'Документ вернётся в черновик. Его можно будет открыть, изменить и провести снова.'
+                : 'Операция будет сторнирована. Это действие нельзя отменить.'}
+            </p>
             {cancelError && <p className="text-red-600 text-sm mb-3">{cancelError}</p>}
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={() => { setCancelTarget(null); setCancelError(null) }} disabled={cancelLoading}>
                 Нет
               </Button>
               <Button variant="destructive" onClick={confirmCancel} disabled={cancelLoading}>
-                {cancelLoading ? 'Отмена...' : 'Отменить операцию'}
+                {cancelLoading ? 'Отмена...' : isOwnershipUnpost ? 'Отменить проведение' : 'Отменить операцию'}
               </Button>
             </div>
           </div>
