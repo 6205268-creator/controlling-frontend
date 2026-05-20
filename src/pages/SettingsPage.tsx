@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Droplets, Zap, Flame, Check } from 'lucide-react'
+import { Droplets, Zap, Flame } from 'lucide-react'
 import { getOrgSettings, setLockDate, setMeterTypes, type OrgSettings } from '../lib/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return 'не задана'
+  if (!iso) return '—'
   const [y, m, d] = iso.split('-')
   return `${d}.${m}.${y}`
 }
 
 const METER_TYPES = [
-  { key: 'water',       label: 'Вода',          Icon: Droplets, color: 'text-blue-500' },
-  { key: 'electricity', label: 'Электричество',  Icon: Zap,      color: 'text-yellow-500' },
-  { key: 'gas',         label: 'Газ',            Icon: Flame,    color: 'text-orange-500' },
+  { key: 'water',       label: 'Вода',          Icon: Droplets, on: 'bg-blue-500 border-blue-500 shadow-blue-200'    },
+  { key: 'electricity', label: 'Электричество',  Icon: Zap,      on: 'bg-amber-400 border-amber-400 shadow-amber-200' },
+  { key: 'gas',         label: 'Газ',            Icon: Flame,    on: 'bg-orange-500 border-orange-500 shadow-orange-200' },
 ]
 
 export default function SettingsPage() {
@@ -67,23 +67,6 @@ export default function SettingsPage() {
     }
   }
 
-  async function saveMeterTypes() {
-    const selected = Object.entries(meterTypes).filter(([, v]) => v).map(([k]) => k)
-    if (selected.length === 0) {
-      setMeterError('Выберите хотя бы один тип')
-      return
-    }
-    setMeterSaving(true); setMeterError(null); setMeterOk(false)
-    try {
-      await setMeterTypes(selected)
-      setMeterOk(true)
-    } catch (e) {
-      setMeterError(e instanceof Error ? e.message : 'Ошибка')
-    } finally {
-      setMeterSaving(false)
-    }
-  }
-
   async function clearLock() {
     setLockSaving(true); setLockError(null); setLockOk(false)
     try {
@@ -98,86 +81,122 @@ export default function SettingsPage() {
     }
   }
 
+  async function saveMeterTypes() {
+    const selected = Object.entries(meterTypes).filter(([, v]) => v).map(([k]) => k)
+    if (selected.length === 0) { setMeterError('Выберите хотя бы один тип'); return }
+    setMeterSaving(true); setMeterError(null); setMeterOk(false)
+    try {
+      await setMeterTypes(selected)
+      setMeterOk(true)
+    } catch (e) {
+      setMeterError(e instanceof Error ? e.message : 'Ошибка')
+    } finally {
+      setMeterSaving(false)
+    }
+  }
+
   if (loading) return <p className="text-zinc-400 text-sm">Загрузка...</p>
-  if (error) return <p className="text-red-600 text-sm">{error}</p>
+  if (error)   return <p className="text-red-600 text-sm">{error}</p>
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-xl space-y-5">
 
-      {/* Блок дат — горизонтально */}
-      <div className="bg-white rounded-lg border border-zinc-200 p-5">
-        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-4">Учётный период</h2>
-        <div className="flex gap-8 items-start flex-wrap">
+      {/* ── Учётный период ── */}
+      <div className="bg-white rounded-xl border border-zinc-200 p-6">
+        <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-5">
+          Учётный период
+        </p>
 
-          {/* Дата актуальности */}
-          <div className="min-w-[180px]">
-            <p className="text-xs text-zinc-500 mb-1">Дата актуальности учёта</p>
-            <p className="text-xl font-semibold text-zinc-800">{fmtDate(settings?.current_period ?? null)}</p>
-            <p className="text-xs text-zinc-400 mt-0.5">устанавливается автоматически</p>
+        <div className="grid grid-cols-2 gap-6">
+          {/* Текущий период — только отображение */}
+          <div>
+            <p className="text-xs text-zinc-500 mb-2">Дата актуальности</p>
+            <p className="text-2xl font-bold text-zinc-800 tabular-nums tracking-tight">
+              {fmtDate(settings?.current_period ?? null)}
+            </p>
+            <p className="text-xs text-zinc-400 mt-1">устанавливается автоматически</p>
           </div>
 
-          <div className="w-px self-stretch bg-zinc-100" />
-
           {/* Дата запрета */}
-          <div className="flex-1 min-w-[240px]">
-            <p className="text-xs text-zinc-500 mb-1">Дата запрета изменений</p>
+          <div>
+            <p className="text-xs text-zinc-500 mb-2">Запрет изменений</p>
+            {settings?.lock_date ? (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-lg px-3 py-1.5 tabular-nums">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                  {fmtDate(settings.lock_date)}
+                </span>
+                <button
+                  className="text-xs text-zinc-400 hover:text-zinc-700 underline underline-offset-2 transition-colors"
+                  onClick={clearLock}
+                  disabled={lockSaving}
+                >
+                  снять
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-400 mb-2">не задана</p>
+            )}
             <div className="flex gap-2 items-center">
               <Input
                 type="date"
                 value={lockInput}
                 onChange={e => { setLockInput(e.target.value); setLockOk(false) }}
-                className="w-40"
+                className="w-36 text-sm"
               />
               <Button onClick={saveLock} disabled={lockSaving} size="sm">
-                {lockSaving ? '...' : 'Установить'}
+                {lockSaving ? '…' : 'Установить'}
               </Button>
-              {settings?.lock_date && (
-                <Button variant="outline" size="sm" disabled={lockSaving} onClick={clearLock}>
-                  Снять
-                </Button>
-              )}
             </div>
-            {lockError && <p className="text-red-600 text-xs mt-1">{lockError}</p>}
-            {lockOk && <p className="text-green-600 text-xs mt-1">Установлено</p>}
+            {lockError && <p className="text-red-500 text-xs mt-1.5">{lockError}</p>}
+            {lockOk    && <p className="text-green-600 text-xs mt-1.5">Сохранено ✓</p>}
           </div>
-
         </div>
       </div>
 
-      {/* Блок типов счётчиков */}
-      <div className="bg-white rounded-lg border border-zinc-200 p-5">
-        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Типы счётчиков</h2>
-        <p className="text-xs text-zinc-400 mb-4">
-          Выберите типы, которые используются в учёте. Только они будут доступны при создании счётчика.
+      {/* ── Типы счётчиков ── */}
+      <div className="bg-white rounded-xl border border-zinc-200 p-6">
+        <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-1">
+          Типы счётчиков
+        </p>
+        <p className="text-xs text-zinc-400 mb-5">
+          Только выбранные типы доступны при добавлении счётчика.
         </p>
 
-        <div className="flex gap-2 flex-wrap mb-4">
-          {METER_TYPES.map(({ key, label, Icon, color }) => (
-            <label key={key}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border cursor-pointer select-none text-sm transition-colors ${
-                meterTypes[key]
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400'
-              }`}>
-              <input
-                type="checkbox"
-                checked={meterTypes[key]}
-                onChange={e => { setMeterTypesState(t => ({ ...t, [key]: e.target.checked })); setMeterOk(false) }}
-                className="sr-only"
-              />
-              {meterTypes[key] && <Check size={13} className="text-blue-600 shrink-0" />}
-              <Icon size={14} className={meterTypes[key] ? 'text-blue-600' : color} />
-              <span className="font-medium">{label}</span>
-            </label>
-          ))}
+        <div className="flex gap-3 mb-5">
+          {METER_TYPES.map(({ key, label, Icon, on: onClass }) => {
+            const active = meterTypes[key]
+            return (
+              <button
+                key={key}
+                onClick={() => { setMeterTypesState(t => ({ ...t, [key]: !t[key] })); setMeterOk(false) }}
+                className={`relative flex flex-col items-center justify-center gap-2.5 w-36 h-28 rounded-xl border-2 transition-all duration-200 select-none cursor-pointer ${
+                  active
+                    ? `${onClass} text-white shadow-lg`
+                    : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'
+                }`}
+              >
+                {active && (
+                  <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-white/70" />
+                )}
+                <Icon
+                  size={30}
+                  className={active ? 'text-white' : 'text-zinc-300'}
+                />
+                <span className={`text-[11px] font-semibold ${active ? 'text-white' : 'text-zinc-400'}`}>
+                  {label}
+                </span>
+              </button>
+            )
+          })}
         </div>
 
         <div className="flex items-center gap-3">
           <Button size="sm" onClick={saveMeterTypes} disabled={meterSaving}>
-            {meterSaving ? '...' : 'Сохранить'}
+            {meterSaving ? '…' : 'Сохранить'}
           </Button>
-          {meterError && <p className="text-red-600 text-xs">{meterError}</p>}
-          {meterOk && <p className="text-green-600 text-xs">Сохранено</p>}
+          {meterError && <p className="text-red-500 text-xs">{meterError}</p>}
+          {meterOk    && <p className="text-green-600 text-xs">Сохранено ✓</p>}
         </div>
       </div>
 
