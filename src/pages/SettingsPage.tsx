@@ -11,9 +11,9 @@ function fmtDate(iso: string | null): string {
 }
 
 const METER_TYPES = [
-  { key: 'water',       label: 'Вода',          Icon: Droplets, on: 'bg-blue-500 border-blue-500 shadow-blue-200'    },
-  { key: 'electricity', label: 'Электричество',  Icon: Zap,      on: 'bg-amber-400 border-amber-400 shadow-amber-200' },
-  { key: 'gas',         label: 'Газ',            Icon: Flame,    on: 'bg-orange-500 border-orange-500 shadow-orange-200' },
+  { key: 'water',       label: 'Вода',          Icon: Droplets, on: 'bg-blue-700 border-blue-700 shadow-blue-300'    },
+  { key: 'electricity', label: 'Электричество',  Icon: Zap,      on: 'bg-red-500 border-red-500 shadow-red-200'       },
+  { key: 'gas',         label: 'Газ',            Icon: Flame,    on: 'bg-sky-400 border-sky-400 shadow-sky-200'       },
 ]
 
 export default function SettingsPage() {
@@ -170,7 +170,7 @@ export default function SettingsPage() {
               <button
                 key={key}
                 onClick={() => { setMeterTypesState(t => ({ ...t, [key]: !t[key] })); setMeterOk(false) }}
-                className={`relative flex flex-col items-center justify-center gap-2.5 w-36 h-28 rounded-xl border-2 transition-all duration-200 select-none cursor-pointer ${
+                className={`relative flex flex-col items-center justify-center gap-2 w-28 h-24 rounded-xl border-2 transition-all duration-200 select-none cursor-pointer ${
                   active
                     ? `${onClass} text-white shadow-lg`
                     : 'bg-zinc-50 border-zinc-200 hover:bg-zinc-100'
@@ -180,7 +180,7 @@ export default function SettingsPage() {
                   <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-white/70" />
                 )}
                 <Icon
-                  size={30}
+                  size={22}
                   className={active ? 'text-white' : 'text-zinc-300'}
                 />
                 <span className={`text-[11px] font-semibold ${active ? 'text-white' : 'text-zinc-400'}`}>
