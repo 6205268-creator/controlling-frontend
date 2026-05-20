@@ -105,7 +105,8 @@ export default function JournalPage() {
     try {
       let r
       if (d.doc_type === 'ownership') {
-        r = await postOwnership(d.id)
+        if (!d.own_id) throw new Error('Не найден ID строки владения')
+        r = await postOwnership(d.own_id)
       } else if (d.doc_type === 'payment') {
         r = await postPayment(d.id)
       } else {

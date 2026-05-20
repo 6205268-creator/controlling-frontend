@@ -43,7 +43,6 @@ export default function OwnershipDialog({
   const [docDate, setDocDate] = useState(new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = useState('')
   const [ownId, setOwnId] = useState<string | null>(null)
-  const [docId, setDocId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +67,6 @@ export default function OwnershipDialog({
       if (line.status !== 'draft') { setError('Документ уже проведён — откройте через отмену проведения'); return }
 
       setOwnId(line.id)
-      setDocId(line.document_id)
       setDocDate(line.doc_date)
       setNotes(line.notes ?? '')
       setSelectedContractor({
@@ -98,7 +96,6 @@ export default function OwnershipDialog({
     setDocDate(new Date().toISOString().slice(0, 10))
     setNotes('')
     setOwnId(null)
-    setDocId(null)
     setError(null)
     setSuccess(null)
     setLoading(false)
@@ -122,7 +119,7 @@ export default function OwnershipDialog({
       const r = await updateOwnership({
         ownId, contractorId, objectType: 'plot', objectId: selectedPlot!.id, docDate, notes: notes || undefined,
       })
-      return { ok: r.ok, ownId: docId, error: r.error }
+      return { ok: r.ok, ownId, error: r.error }
     }
     const r = await createOwnership({
       orgId, contractorId, objectType: 'plot', objectId: selectedPlot!.id, docDate, notes: notes || undefined,
