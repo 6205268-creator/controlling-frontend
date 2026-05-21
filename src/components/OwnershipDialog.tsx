@@ -270,7 +270,7 @@ export default function OwnershipDialog({
       notes: notes || undefined,
     })
     if (!r.ok) throw new Error(r.error ?? 'Ошибка сохранения')
-    const newDocId = r.doc_id as string
+    const newDocId = (r.document_id ?? r.doc_id) as string
     for (const o of owners.filter(o => o.contractor !== null)) {
       const ar = await addOwnershipOwner({ documentId: newDocId, contractorId: o.contractor!.id, shares: o.shares })
       if (!ar.ok) throw new Error(ar.error ?? 'Ошибка добавления владельца')
