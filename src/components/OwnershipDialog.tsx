@@ -347,32 +347,32 @@ export default function OwnershipDialog({
           <div className="flex flex-1 overflow-auto min-h-0">
             {/* Left column — form */}
             <div className="flex-1 p-6 space-y-4 border-r border-zinc-100 overflow-auto">
-              {/* Date + Plot */}
-              <div className="flex gap-4">
-                <div className="space-y-1 shrink-0">
-                  <label className="text-xs font-medium text-zinc-500">Дата</label>
-                  <Input
-                    type="date"
-                    value={docDate}
-                    onChange={e => setDocDate(e.target.value)}
-                    className="w-36 text-sm"
-                  />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <label className="text-xs font-medium text-zinc-500">Участок</label>
-                  <select
-                    className="w-full border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white text-zinc-900"
-                    value={selectedPlot?.id ?? ''}
-                    onChange={e => setSelectedPlot(allPlots.find(p => p.id === e.target.value) ?? null)}
-                  >
-                    <option value="">— выберите —</option>
-                    {allPlots.map(p => (
-                      <option key={p.id} value={p.id}>
-                        №{p.number}{p.owner_name ? ` (${p.owner_name})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* Date */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-zinc-500">Дата</label>
+                <Input
+                  type="date"
+                  value={docDate}
+                  onChange={e => setDocDate(e.target.value)}
+                  className="w-full text-sm"
+                />
+              </div>
+
+              {/* Plot */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-zinc-500">Участок</label>
+                <select
+                  className="w-full border border-zinc-200 rounded-md px-3 py-2 text-sm bg-white text-zinc-900"
+                  value={selectedPlot?.id ?? ''}
+                  onChange={e => setSelectedPlot(allPlots.find(p => p.id === e.target.value) ?? null)}
+                >
+                  <option value="">— выберите —</option>
+                  {allPlots.map(p => (
+                    <option key={p.id} value={p.id}>
+                      №{p.number}{p.owner_name ? ` (${p.owner_name})` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {selectedPlot?.owner_name && (
