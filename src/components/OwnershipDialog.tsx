@@ -104,6 +104,7 @@ export default function OwnershipDialog({
   const [success, setSuccess] = useState<'saved' | 'posted' | null>(null)
   const [popup, setPopup] = useState<NewContractorPopup | null>(null)
   const popupRef = useRef<HTMLDivElement>(null)
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -157,6 +158,7 @@ export default function OwnershipDialog({
   }
 
   function reset() {
+    if (successTimerRef.current) { clearTimeout(successTimerRef.current); successTimerRef.current = null }
     setSelectedPlot(preselectedPlot)
     setDocDate(new Date().toISOString().slice(0, 10))
     setNotes('')
@@ -267,12 +269,13 @@ export default function OwnershipDialog({
 
   async function handleSave() {
     if (!selectedPlot) { setError('Выберите участок'); return }
+    if (!owners.some(o => o.contractor)) { setError('Добавьте хотя бы одного владельца'); return }
     setSubmitting(true)
     setError(null)
     try {
       await persist()
       setSuccess('saved')
-      setTimeout(() => { reset(); onPosted(); onClose() }, 1200)
+      successTimerRef.current = setTimeout(() => { reset(); onPosted(); onClose() }, 1200)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка')
     } finally {
@@ -290,7 +293,7 @@ export default function OwnershipDialog({
       const posted = await postOwnership(docId)
       if (!posted.ok) throw new Error(posted.error ?? 'Ошибка проведения')
       setSuccess('posted')
-      setTimeout(() => { reset(); onPosted(); onClose() }, 1200)
+      successTimerRef.current = setTimeout(() => { reset(); onPosted(); onClose() }, 1200)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка')
     } finally {
@@ -606,7 +609,7 @@ export default function OwnershipDialog({
               <Button
                 variant="outline"
                 onClick={handleSave}
-                disabled={submitting || !selectedPlot || !!success}
+                disabled={submitting || !selectedPlot || !hasContractor || !!success}
               >
                 {submitting ? '...' : 'Сохранить'}
               </Button>
