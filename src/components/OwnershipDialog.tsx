@@ -431,18 +431,21 @@ export default function OwnershipDialog({
                       {/* Shares row */}
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-zinc-500 shrink-0">Долей:</span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={1}
-                          value={owner.shares}
-                          onChange={e => {
-                            const v = parseInt(e.target.value)
-                            if (!isNaN(v) && v >= 1 && v <= 9) updateOwner(owner.localId, { shares: v })
-                          }}
-                          className="w-10 text-center text-sm border rounded px-1 py-0.5 focus:outline-none focus:ring-1"
-                          style={{ borderColor: 'var(--theme-accent)', '--tw-ring-color': 'var(--theme-accent)' } as React.CSSProperties}
-                        />
+                        <div className="flex items-center border rounded overflow-hidden" style={{ borderColor: 'var(--theme-accent)' }}>
+                          <button
+                            type="button"
+                            onClick={() => { if (owner.shares > 1) updateOwner(owner.localId, { shares: owner.shares - 1 }) }}
+                            className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 text-base leading-none select-none"
+                          >−</button>
+                          <span className="w-6 text-center text-sm font-medium" style={{ color: 'var(--theme-accent)' }}>
+                            {owner.shares}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => { if (owner.shares < 9) updateOwner(owner.localId, { shares: owner.shares + 1 }) }}
+                            className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:bg-zinc-100 text-base leading-none select-none"
+                          >+</button>
+                        </div>
                         <div className="flex-1 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-200"

@@ -68,8 +68,8 @@ export default function JournalPage() {
     setCancelError(null)
     try {
       if (cancelTarget.doc_type === 'ownership') {
-        if (!cancelTarget.own_id) throw new Error('Не найден ID строки владения')
-        const r = await unpostOwnership(cancelTarget.own_id)
+        const unpostId = cancelTarget.own_id ?? cancelTarget.id
+        const r = await unpostOwnership(unpostId)
         if (!r.ok) throw new Error(r.error ?? 'Ошибка отмены проведения')
       } else {
         const r = await cancelDocument(cancelTarget.id)
@@ -105,8 +105,7 @@ export default function JournalPage() {
     try {
       let r
       if (d.doc_type === 'ownership') {
-        if (!d.own_id) throw new Error('Не найден ID строки владения')
-        r = await postOwnership(d.own_id)
+        r = await postOwnership(d.own_id ?? d.id)
       } else if (d.doc_type === 'payment') {
         r = await postPayment(d.id)
       } else {
