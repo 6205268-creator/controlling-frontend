@@ -95,7 +95,6 @@ export async function createContractor(params: {
 
 export async function createOwnership(params: {
   orgId: string
-  contractorId: string
   objectType: string
   objectId: string
   docDate: string
@@ -104,19 +103,17 @@ export async function createOwnership(params: {
   return apiFetch<RpcResult>('/rpc/create_ownership', {
     method: 'POST',
     body: JSON.stringify({
-      p_org_id:        params.orgId,
-      p_contractor_id: params.contractorId,
-      p_object_type:   params.objectType,
-      p_object_id:     params.objectId,
-      p_doc_date:      params.docDate,
-      p_notes:         params.notes ?? null,
+      p_org_id:      params.orgId,
+      p_object_type: params.objectType,
+      p_object_id:   params.objectId,
+      p_doc_date:    params.docDate,
+      p_notes:       params.notes ?? null,
     }),
   })
 }
 
 export async function updateOwnership(params: {
-  ownId: string
-  contractorId: string
+  documentId: string
   objectType: string
   objectId: string
   docDate: string
@@ -125,32 +122,67 @@ export async function updateOwnership(params: {
   return apiFetch<RpcResult>('/rpc/update_ownership', {
     method: 'POST',
     body: JSON.stringify({
-      p_own_id:        params.ownId,
-      p_contractor_id: params.contractorId,
-      p_object_type:   params.objectType,
-      p_object_id:     params.objectId,
-      p_doc_date:      params.docDate,
-      p_notes:         params.notes ?? null,
+      p_document_id: params.documentId,
+      p_object_type: params.objectType,
+      p_object_id:   params.objectId,
+      p_doc_date:    params.docDate,
+      p_notes:       params.notes ?? null,
     }),
   })
 }
 
-export async function getOwnershipByDocumentId(documentId: string): Promise<OwnershipLine | null> {
-  const rows = await apiFetch<OwnershipLine[]>(
-    `/doc_ownership?document_id=eq.${documentId}&${orgParam()}&limit=1`
+export async function getOwnershipOwners(documentId: string): Promise<OwnershipLine[]> {
+  return apiFetch<OwnershipLine[]>(
+    `/doc_ownership?document_id=eq.${documentId}&${orgParam()}`
   )
-  return rows[0] ?? null
 }
 
-export async function postOwnership(ownId: string): Promise<RpcResult> {
+export async function postOwnership(documentId: string): Promise<RpcResult> {
   return apiFetch<RpcResult>('/rpc/post_ownership', {
     method: 'POST',
-    body: JSON.stringify({ p_doc_id: ownId }),
+    body: JSON.stringify({ p_document_id: documentId }),
   })
 }
 
-export async function unpostOwnership(ownId: string): Promise<RpcResult> {
+export async function unpostOwnership(documentId: string): Promise<RpcResult> {
   return apiFetch<RpcResult>('/rpc/unpost_ownership', {
+    method: 'POST',
+    body: JSON.stringify({ p_document_id: documentId }),
+  })
+}
+
+export async function addOwnershipOwner(params: {
+  documentId: string
+  contractorId: string
+  shares?: number
+}): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/add_ownership_owner', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_document_id:   params.documentId,
+      p_contractor_id: params.contractorId,
+      p_shares:        params.shares ?? 1,
+    }),
+  })
+}
+
+export async function updateOwnershipOwner(params: {
+  ownId: string
+  contractorId: string
+  shares: number
+}): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/update_ownership_owner', {
+    method: 'POST',
+    body: JSON.stringify({
+      p_own_id:        params.ownId,
+      p_contractor_id: params.contractorId,
+      p_shares:        params.shares,
+    }),
+  })
+}
+
+export async function removeOwnershipOwner(ownId: string): Promise<RpcResult> {
+  return apiFetch<RpcResult>('/rpc/remove_ownership_owner', {
     method: 'POST',
     body: JSON.stringify({ p_own_id: ownId }),
   })

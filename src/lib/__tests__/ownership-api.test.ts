@@ -45,7 +45,7 @@ describe('createOwnership', () => {
   it('returns ok:true with doc_id', async () => {
     mockFetch.mockResolvedValueOnce(okJson({ ok: true, doc_id: 'doc-1', status: 'draft' }))
     const result = await createOwnership({
-      orgId: 'org-1', contractorId: 'c-1', objectType: 'plot',
+      orgId: 'org-1', objectType: 'plot',
       objectId: 'plot-1', docDate: '2026-05-12',
     })
     expect(result.ok).toBe(true)
