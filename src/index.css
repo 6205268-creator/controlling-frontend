@@ -47,6 +47,25 @@
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
   }
+
+  /* Theme: garden (садоводческое товарищество) — default */
+  :root,
+  [data-theme="garden"] {
+    --theme-gradient-header: linear-gradient(135deg, #14532d, #16a34a);
+    --theme-accent: #22c55e;
+    --theme-accent-soft: #f0fdf4;
+    --theme-gradient-individual: linear-gradient(135deg, #15803d, #22c55e);
+    --theme-gradient-entity: linear-gradient(135deg, #4d7c0f, #84cc16);
+  }
+
+  /* Theme: garage (гаражный кооператив) — reserved */
+  [data-theme="garage"] {
+    --theme-gradient-header: linear-gradient(135deg, #1c1917, #44403c);
+    --theme-accent: #78716c;
+    --theme-accent-soft: #f5f5f4;
+    --theme-gradient-individual: linear-gradient(135deg, #1c1917, #57534e);
+    --theme-gradient-entity: linear-gradient(135deg, #44403c, #78716c);
+  }
 }
 
 @layer base {
