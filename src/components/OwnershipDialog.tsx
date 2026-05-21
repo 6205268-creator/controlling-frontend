@@ -49,8 +49,19 @@ interface Props {
 
 const OWNER_COLORS = ['#22c55e', '#16a34a', '#4ade80', '#86efac', '#15803d', '#166534']
 
+function makeId(): string {
+  // crypto.randomUUID() requires secure context (HTTPS/localhost) — use fallback for HTTP
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+  })
+}
+
 function makeEntry(): OwnerEntry {
-  return { localId: crypto.randomUUID(), ownId: null, contractor: null, shares: 1 }
+  return { localId: makeId(), ownId: null, contractor: null, shares: 1 }
 }
 
 function buildGradient(owners: OwnerEntry[]): string {
@@ -75,7 +86,7 @@ function abbrevName(name: string): string {
 
 function lineToEntry(line: OwnershipLine): OwnerEntry {
   return {
-    localId: crypto.randomUUID(),
+    localId: makeId(),
     ownId: line.id,
     contractor: {
       id: line.contractor_id,
