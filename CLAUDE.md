@@ -31,10 +31,11 @@
 
 ## Старт каждой сессии
 
-1. Прочитай `FRONTEND_MASTER.md` — стек, экраны, структура
-2. `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` — контейнер жив?
-3. `curl http://localhost:3100/rpc/health` — бэкенд жив?
-4. Спроси пользователя: что делаем?
+1. Прочитай `/home/roman/controlling-backend/ROADMAP.md` — **центральный план проекта, читать ПЕРВЫМ**
+2. Прочитай `FRONTEND_MASTER.md` — стек, экраны, структура
+3. `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000` — контейнер жив?
+4. `curl http://localhost:3100/rpc/health` — бэкенд жив?
+5. Спроси пользователя: что делаем?
 
 ---
 
