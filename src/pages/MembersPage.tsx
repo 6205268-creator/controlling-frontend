@@ -23,6 +23,7 @@ interface MemberRow {
   phone: string | null
   joined_at: string
   is_active: boolean
+  plot_numbers: string[]
 }
 
 function fmtDate(d: string): string {
@@ -39,8 +40,18 @@ export default function MembersPage() {
     Promise.all([
       apiFetch<Member[]>(`/members?${q}&order=member_number.asc`),
       apiFetch<Contractor[]>(`/contractors?${q}&select=id,full_name,phone`),
-    ]).then(([members, contractors]) => {
+      apiFetch<{ id: string; number: string; owner_id: string | null }[]>(
+        `/plot_summary?${q}&select=id,number,owner_id`
+      ),
+    ]).then(([members, contractors, plots]) => {
       const cMap = new Map(contractors.map(c => [c.id, c]))
+      const plotMap = new Map<string, string[]>()
+      for (const p of plots) {
+        if (!p.owner_id) continue
+        const existing = plotMap.get(p.owner_id) ?? []
+        existing.push(p.number)
+        plotMap.set(p.owner_id, existing)
+      }
       setRows(members.map(m => {
         const c = cMap.get(m.contractor_id)
         return {
@@ -50,6 +61,7 @@ export default function MembersPage() {
           phone: c?.phone ?? null,
           joined_at: m.joined_at,
           is_active: m.is_active,
+          plot_numbers: plotMap.get(m.contractor_id) ?? [],
         }
       }))
     }).finally(() => setLoading(false))
@@ -82,6 +94,7 @@ export default function MembersPage() {
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Телефон</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Дата вступления</th>
               <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Статус</th>
+              <th className="text-left px-5 py-2.5 text-xs text-zinc-400 font-medium uppercase tracking-wide">Участки</th>
             </tr>
           </thead>
           <tbody>
@@ -96,10 +109,20 @@ export default function MembersPage() {
                     {r.is_active ? 'Активен' : 'Неактивен'}
                   </span>
                 </td>
+                <td className="px-5 py-3">
+                  {r.plot_numbers.length > 0
+                    ? r.plot_numbers.map(n => (
+                        <span key={n} className="inline-block bg-zinc-100 text-zinc-700 rounded px-1.5 py-0.5 text-xs mr-1">
+                          №{n}
+                        </span>
+                      ))
+                    : <span className="text-zinc-400">—</span>
+                  }
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-zinc-400">Ничего не найдено</td></tr>
+              <tr><td colSpan={6} className="px-5 py-8 text-center text-zinc-400">Ничего не найдено</td></tr>
             )}
           </tbody>
         </table>

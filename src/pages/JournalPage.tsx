@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   apiFetch, orgParam, type JournalItem, type PlotSummary,
   cancelDocument, deleteDraft, unpostOwnership, postOwnership, postPayment,
@@ -12,6 +13,7 @@ import OwnershipDialog, { type PlotOption } from '../components/OwnershipDialog'
 import type { Contractor } from '../lib/api'
 
 export default function JournalPage() {
+  const [searchParams] = useSearchParams()
   const [docs, setDocs] = useState<JournalItem[]>([])
   const [plots, setPlots] = useState<PlotOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,10 +31,10 @@ export default function JournalPage() {
   const [postingId, setPostingId] = useState<string | null>(null)
   const [postError, setPostError] = useState<string | null>(null)
 
-  const [filterType, setFilterType] = useState('')
+  const [filterType, setFilterType] = useState(searchParams.get('type') ?? '')
   const [filterStatus, setFilterStatus] = useState('')
-  const [filterDateFrom, setFilterDateFrom] = useState('')
-  const [filterDateTo, setFilterDateTo] = useState('')
+  const [filterDateFrom, setFilterDateFrom] = useState(searchParams.get('date') ?? '')
+  const [filterDateTo, setFilterDateTo] = useState(searchParams.get('date') ?? '')
   const [filterContractor, setFilterContractor] = useState<Contractor | null>(null)
 
   async function loadDocs() {

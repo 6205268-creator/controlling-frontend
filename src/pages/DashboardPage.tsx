@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { apiFetch, orgParam, type JournalItem } from '../lib/api'
 import { Button } from '@/components/ui/button'
 import PaymentDialog from '../components/PaymentDialog'
@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
   const [paymentOpen, setPaymentOpen] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     setLoading(true)
@@ -84,7 +85,11 @@ export default function DashboardPage() {
           </thead>
           <tbody>
             {docs.map((d, i) => (
-              <tr key={d.id} className={i % 2 === 0 ? 'bg-white' : 'bg-zinc-50/60'}>
+              <tr
+                key={d.id}
+                className={`${i % 2 === 0 ? 'bg-white' : 'bg-zinc-50/60'} cursor-pointer hover:bg-zinc-100 transition-colors`}
+                onClick={() => navigate(`/journal?type=${d.doc_type}&date=${d.doc_date}`)}
+              >
                 <td className="px-5 py-3 text-zinc-600">{fmtDate(d.doc_date)}</td>
                 <td className="px-5 py-3 text-zinc-700">{DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type}</td>
                 <td className="px-5 py-3 text-zinc-700">{d.contractor_name ?? '—'}</td>
